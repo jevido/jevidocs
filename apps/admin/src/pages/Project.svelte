@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { can } from '../lib/roles'
   import { api, publicDocsUrl } from '../lib/api.svelte'
+  import { downloadExport } from '../lib/export-api'
   import { go, href } from '../lib/router.svelte'
   import { formatDate } from '../lib/format'
   import { toast } from '../lib/toast.svelte'
@@ -181,7 +183,7 @@
   <div class="spacer"></div>
   <OpenAPIImport project={slug} onimported={load} />
   <a class="btn" href={publicDocsUrl(slug)} target="_blank" rel="noreferrer">View docs ↗</a>
-  <a class="btn primary" href={href(`/projects/${slug}/pages/new`)}>+ New page</a>
+  {#if can('editor')}<a class="btn primary" href={href(`/projects/${slug}/pages/new`)}>+ New page</a>{/if}
 </div>
 
 {#if managed}
@@ -261,9 +263,9 @@
               <td>
                 <span class={['badge', p.published ? 'ok' : 'warn']}>{p.published ? 'Published' : 'Draft'}</span>
               </td>
-              <td class="muted nowrap">{formatDate(p.updated_at)}</td>
+              <td class="muted nowrap">{formatDate(p.updated_at)}{#if p.updated_by}<br /><span class="small">by {p.updated_by}</span>{/if}</td>
               <td class="right">
-                <button class="btn sm ghost danger" onclick={(e) => removePage(p, e)}>Delete</button>
+                {#if can('editor')}<button class="btn sm ghost danger" onclick={(e) => removePage(p, e)}>Delete</button>{/if}
               </td>
             </tr>
           {/each}
@@ -281,12 +283,21 @@
   <form class="card card-pad settings" onsubmit={save}>
     <ProjectForm bind:value={form} lockSlug />
     <div class="row">
-      <button class="btn primary" type="submit" disabled={busy}>Save changes</button>
+      <button class="btn primary" type="submit" disabled={busy || !can('admin')} title={can('admin') ? undefined : 'Only admins change project settings'}>Save changes</button>
     </div>
   </form>
 
   <GitHubSource project={slug} onsynced={load} />
 
+  <div class="card card-pad export-box">
+    <div>
+      <strong>Export</strong>
+      <p class="muted">Every page (all languages) as Markdown with front matter, plus project.json.</p>
+    </div>
+    <button class="btn" onclick={() => downloadExport(slug).catch(toast.error)}>Download export</button>
+  </div>
+
+  {#if can('admin')}
   <div class="card card-pad danger-zone">
     <div>
       <h2>Delete project</h2>
@@ -294,6 +305,7 @@
     </div>
     <button class="btn danger" onclick={remove}>Delete project</button>
   </div>
+  {/if}
 {/if}
 
 <style>
@@ -384,4 +396,6 @@
   .order { display: inline-flex; gap: 0.1rem; margin-right: 0.35rem; }
   .order .btn { padding: 0 0.3rem; min-width: 0; }
   .hint-order { font-size: 0.8rem; margin-left: 0.75rem; }
+  .export-box { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 1rem 0; }
+  .export-box p { margin: 0.25rem 0 0; }
 </style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api, publicDocsUrl } from '../lib/api.svelte'
+  import { api, publicDocsUrl, request } from '../lib/api.svelte'
   import { href } from '../lib/router.svelte'
   import { formatDate } from '../lib/format'
   import type { Project, Stats } from '../lib/types'
@@ -7,6 +7,12 @@
   let stats = $state.raw<Stats | null>(null)
   let projects = $state.raw<Project[]>([])
   let error = $state('')
+
+  type Activity = { project: string; id: number; slug: string; title: string; locale: string; updated_at: string }
+  let activity = $state.raw<Activity[]>([])
+  request<Activity[]>('GET', '/api/admin/activity')
+    .then((a) => (activity = a))
+    .catch(() => {})
 
   Promise.all([api.stats(), api.projects()])
     .then(([s, p]) => {
@@ -62,7 +68,33 @@
   {/if}
 </div>
 
+<h2 class="sub recent">Recent edits</h2>
+<div class="card">
+  {#if activity.length === 0}
+    <div class="empty">No edits yet.</div>
+  {:else}
+    <table class="list">
+      <thead><tr><th>Page</th><th>Project</th><th>Updated</th></tr></thead>
+      <tbody>
+        {#each activity as a (a.id)}
+          <tr>
+            <td>
+              <a href={href(`/projects/${a.project}/pages/${a.id}`)}><strong>{a.title}</strong></a>
+              <div class="muted"><code>/{a.slug}</code>{#if a.locale} · {a.locale}{/if}</div>
+            </td>
+            <td><a href={href(`/projects/${a.project}`)}>{a.project}</a></td>
+            <td class="muted">{formatDate(a.updated_at)}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  {/if}
+</div>
+
 <style>
+  .recent {
+    margin-top: 2rem;
+  }
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));

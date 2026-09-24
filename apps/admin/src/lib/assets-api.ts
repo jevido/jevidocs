@@ -4,7 +4,7 @@ import { API_URL, ApiError, request, session } from './api.svelte'
 const enc = encodeURIComponent
 
 export type Asset = { id: number; name: string; url: string; content_type: string; size: number; created_at: string }
-export type AdminUser = { id: number; name: string; email: string; created_at: string }
+export type AdminUser = { id: number; name: string; email: string; role: 'viewer' | 'editor' | 'admin'; created_at: string }
 
 export const ASSET_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml,image/avif,application/pdf,text/plain'
 
@@ -38,7 +38,8 @@ export const assetsApi = {
   list: (project: string) => request<Asset[]>('GET', `/api/admin/projects/${enc(project)}/assets`),
   remove: (project: string, id: number) => request<{ ok: true }>('DELETE', `/api/admin/projects/${enc(project)}/assets/${id}`),
   users: () => request<AdminUser[]>('GET', '/api/admin/users'),
-  createUser: (u: { name: string; email: string; password: string }) => request<AdminUser>('POST', '/api/admin/users', u),
+  createUser: (u: { name: string; email: string; password: string; role?: string }) => request<AdminUser>('POST', '/api/admin/users', u),
+  setRole: (id: number, role: string) => request<{ ok: true }>('PUT', `/api/admin/users/${id}`, { role }),
   deleteUser: (id: number) => request<{ ok: true }>('DELETE', `/api/admin/users/${id}`),
   changePassword: (current: string, next: string) =>
     request<{ ok: true }>('PUT', '/api/auth/password', { current, new: next }),

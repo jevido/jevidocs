@@ -39,7 +39,14 @@ type AssetView struct {
 // AssetURL is the public address of an asset.
 func AssetURL(a models.Asset) string {
 	base := strings.TrimRight(facades.Config().GetString("http.url"), "/")
-	return fmt.Sprintf("%s/api/assets/%d/%s", base, a.ID, url.PathEscape(a.Name))
+	u := fmt.Sprintf("%s/api/assets/%d/%s", base, a.ID, url.PathEscape(a.Name))
+	// Assets of private projects are only served with a signature, so the
+	// URL itself is the credential (an <img> cannot send a bearer token).
+	var p models.Project
+	if err := facades.Orm().Query().Where("id", a.ProjectID).First(&p); err == nil && p.ID != 0 && !p.Public {
+		u += "?sig=" + assetSig(appKey(), a.ID)
+	}
+	return u
 }
 
 func ViewAsset(a models.Asset) AssetView {

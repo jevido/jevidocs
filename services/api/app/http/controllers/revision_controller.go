@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/goravel/framework/contracts/http"
 
+	"dev.jevido/jevidocs/services/api/app/http/middleware"
 	"dev.jevido/jevidocs/services/api/app/models"
 	"dev.jevido/jevidocs/services/api/app/store"
 )
@@ -62,5 +63,8 @@ func (r *RevisionController) Restore(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
+	editor := middleware.User(ctx).ID
+	store.MarkEditedBy(pg.ID, editor)
+	pg.UpdatedBy = &editor
 	return ok(ctx, viewAdminPage(p, pg, true))
 }

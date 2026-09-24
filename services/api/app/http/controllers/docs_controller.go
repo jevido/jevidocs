@@ -43,7 +43,15 @@ func (r *DocsController) Page(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
-	v, err := store.ViewPage(p, ctx.Request().Query("slug", ""))
+	slug := ctx.Request().Query("slug", "")
+	if token := ctx.Request().Query("preview", ""); token != "" {
+		v, err := store.ViewPreview(p, slug, token)
+		if err != nil {
+			return fail(ctx, err)
+		}
+		return ctx.Response().Header("Cache-Control", "no-store").Json(http.StatusOK, v)
+	}
+	v, err := store.ViewPage(p, slug)
 	if err != nil {
 		return fail(ctx, err)
 	}

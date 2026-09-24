@@ -552,3 +552,32 @@
 :root.dark .prose .fd-api-method[data-method="put"] { color: #fde047; }
 :root.dark .prose .fd-api-method[data-method="patch"] { color: #fdba74; }
 :root.dark .prose .fd-api-method[data-method="delete"] { color: #fca5a5; }
+
+/* ---- external links and toast --------------------------------------------- */
+.prose a.fd-external::after {
+  content: '↗';
+  display: inline-block;
+  margin-left: 0.1em;
+  font-size: 0.75em;
+  opacity: 0.6;
+  text-decoration: none;
+}
+.fd-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 80;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--popover);
+  color: var(--fg);
+  font-size: 0.85rem;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translate(-50%, 0.5rem);
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events: none;
+}
+.fd-toast[data-show] { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .fd-toast { transition: none; } }

@@ -24,7 +24,35 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
+// External links open in a new tab and get a ↗ marker (see prose.css).
+function markExternal(root: HTMLElement) {
+  for (const a of root.querySelectorAll<HTMLAnchorElement>('a[href^="http"]')) {
+    if (a.host === location.host || a.classList.contains('fd-card')) continue
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    a.classList.add('fd-external')
+  }
+}
+
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+
+// showToast flashes a short status message at the bottom of the screen.
+export function showToast(text: string) {
+  let el = document.querySelector<HTMLElement>('.fd-toast')
+  if (!el) {
+    el = document.createElement('div')
+    el.className = 'fd-toast'
+    el.setAttribute('role', 'status')
+    document.body.append(el)
+  }
+  el.textContent = text
+  el.dataset.show = ''
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => delete el!.dataset.show, 1600)
+}
+
 export function enhance(root: HTMLElement) {
+  markExternal(root)
   for (const fig of root.querySelectorAll<HTMLElement>('.fd-codeblock')) {
     if (fig.querySelector(':scope > .fd-copy')) continue
     const btn = document.createElement('button')
@@ -111,6 +139,12 @@ export function onContentClick(e: MouseEvent) {
     const tabs = trigger.closest<HTMLElement>('.fd-tabs')
     if (tabs) select(tabs, trigger.dataset.tab ?? '')
     return
+  }
+  const anchor = target?.closest<HTMLAnchorElement>('a.fd-anchor')
+  if (anchor) {
+    // Navigation to the heading still happens; the link is copied as well.
+    const url = new URL(anchor.getAttribute('href') ?? '', location.href).href
+    copyText(url).then((ok) => ok && showToast('Link copied'))
   }
   const img = target?.closest<HTMLImageElement>('img')
   if (img && !img.closest('a')) {

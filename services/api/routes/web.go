@@ -40,12 +40,13 @@ func Web() {
 	assets := controllers.NewAssetController()
 	users := controllers.NewUserController()
 	facades.Route().Get("/api/assets/{id}/{name}", assets.Show)
-	facades.Route().Middleware(middleware.Auth()).Group(func(r route.Router) {
+	facades.Route().Middleware(middleware.Auth(), middleware.Role()).Group(func(r route.Router) {
 		r.Get("/api/auth/me", admin.Me)
 		r.Post("/api/auth/logout", admin.Logout)
 		r.Put("/api/auth/password", users.Password)
 		r.Prefix("/api/admin").Group(func(r route.Router) {
 			r.Get("/stats", admin.Stats)
+			r.Get("/activity", controllers.NewActivityController().Index)
 			r.Post("/preview", admin.Preview)
 			r.Get("/projects", admin.Projects)
 			r.Post("/projects", admin.CreateProject)
@@ -61,6 +62,8 @@ func Web() {
 			r.Get("/projects/{project}/pages", admin.Pages)
 			r.Post("/projects/{project}/pages", admin.CreatePage)
 			r.Get("/projects/{project}/pages/{id}", admin.ShowPage)
+			r.Get("/projects/{project}/export", controllers.NewExportController().Export)
+			r.Post("/projects/{project}/pages/{id}/preview-link", controllers.NewExportController().PreviewLink)
 			r.Put("/projects/{project}/pages/{id}", admin.UpdatePage)
 			r.Delete("/projects/{project}/pages/{id}", admin.DeletePage)
 			r.Get("/projects/{project}/pages/{id}/revisions", revisions.Index)
@@ -70,6 +73,7 @@ func Web() {
 			r.Get("/projects/{project}/insights", analytics.Insights)
 			r.Get("/users", users.Index)
 			r.Post("/users", users.Store)
+			r.Put("/users/{id}", users.Update)
 			r.Delete("/users/{id}", users.Delete)
 			r.Get("/projects/{project}/assets", assets.Index)
 			r.Post("/projects/{project}/assets", assets.Upload)

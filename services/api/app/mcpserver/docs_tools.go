@@ -86,6 +86,9 @@ func authorize(req *mcp.CallToolRequest) (models.User, error) {
 	if err != nil {
 		return u, errAuth
 	}
+	if !store.HasRole(u, store.RoleEditor) {
+		return u, errors.New("this tool needs an editor or admin token; this token's user is a " + store.RoleOf(u))
+	}
 	return u, nil
 }
 
@@ -140,7 +143,8 @@ func registerDocsTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "create_page", Description: "Create a documentation page. Requires an admin API token.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in writePageArgs) (*mcp.CallToolResult, writeOut, error) {
-		if _, err := authorize(req); err != nil {
+		u, err := authorize(req)
+		if err != nil {
 			return nil, writeOut{}, err
 		}
 		p, err := store.FindProject(in.Project, true)
@@ -152,13 +156,15 @@ func registerDocsTools(server *mcp.Server) {
 		if err != nil {
 			return nil, writeOut{}, err
 		}
+		store.MarkEditedBy(pg.ID, u.ID)
 		return nil, writeOut{Slug: pg.Slug, URL: store.PageURL(p, pg.Slug)}, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "update_page", Description: "Update a documentation page by slug. Omitted fields keep their value. Requires an admin API token.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in writePageArgs) (*mcp.CallToolResult, writeOut, error) {
-		if _, err := authorize(req); err != nil {
+		u, err := authorize(req)
+		if err != nil {
 			return nil, writeOut{}, err
 		}
 		p, err := store.FindProject(in.Project, true)
@@ -178,6 +184,7 @@ func registerDocsTools(server *mcp.Server) {
 		if err != nil {
 			return nil, writeOut{}, err
 		}
+		store.MarkEditedBy(pg.ID, u.ID)
 		return nil, writeOut{Slug: pg.Slug, URL: store.PageURL(p, pg.Slug)}, nil
 	})
 

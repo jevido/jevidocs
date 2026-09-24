@@ -3,10 +3,11 @@
   import { assetsApi, type AdminUser } from '../lib/assets-api'
   import { formatDate } from '../lib/format'
   import { toast } from '../lib/toast.svelte'
+  import { can, roles } from '../lib/roles'
 
   let users = $state.raw<AdminUser[]>([])
   let loading = $state(true)
-  let draft = $state({ name: '', email: '', password: '' })
+  let draft = $state({ name: '', email: '', password: '', role: 'editor' })
   let adding = $state(false)
   let busy = $state(false)
   let pw = $state({ current: '', next: '', confirm: '' })
@@ -27,7 +28,7 @@
     try {
       await assetsApi.createUser(draft)
       toast.ok(`Added ${draft.email}`)
-      draft = { name: '', email: '', password: '' }
+      draft = { name: '', email: '', password: '', role: 'editor' }
       adding = false
       load()
     } catch (err) {
@@ -35,6 +36,16 @@
     } finally {
       busy = false
     }
+  }
+
+  async function setRole(u: AdminUser, role: string) {
+    try {
+      await assetsApi.setRole(u.id, role)
+      toast.ok(`${u.email} is now ${role}`)
+    } catch (err) {
+      toast.error(err)
+    }
+    load()
   }
 
   async function remove(u: AdminUser) {
@@ -72,7 +83,9 @@
     <h1>Users</h1>
     <p>Everyone listed here can sign in to the admin and edit every project.</p>
   </div>
-  <button class="btn primary" onclick={() => (adding = !adding)}>{adding ? 'Cancel' : '+ Add user'}</button>
+  {#if can('admin')}
+    <button class="btn primary" onclick={() => (adding = !adding)}>{adding ? 'Cancel' : '+ Add user'}</button>
+  {/if}
 </div>
 
 {#if adding}
@@ -81,6 +94,12 @@
     <label class="field">Email <input type="email" required bind:value={draft.email} /></label>
     <label class="field">
       Password <input type="password" required minlength="8" autocomplete="new-password" bind:value={draft.password} />
+    </label>
+    <label class="field">
+      Role
+      <select bind:value={draft.role}>
+        {#each roles as r (r)}<option value={r}>{r}</option>{/each}
+      </select>
     </label>
     <div><button class="btn primary" type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add user'}</button></div>
   </form>
@@ -91,16 +110,25 @@
     {#if !loading}<div class="empty">No users.</div>{/if}
   {:else}
     <table class="list">
-      <thead><tr><th>Name</th><th>Email</th><th>Added</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Added</th><th><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>
         {#each users as u (u.id)}
           <tr>
             <td><strong>{u.name}</strong>{#if u.id === session.user?.id} <span class="badge">you</span>{/if}</td>
             <td class="muted">{u.email}</td>
+            <td>
+              {#if can('admin')}
+                <select aria-label="Role of {u.email}" value={u.role} onchange={(e) => setRole(u, e.currentTarget.value)}>
+                  {#each roles as r (r)}<option value={r}>{r}</option>{/each}
+                </select>
+              {:else}
+                <span class="badge">{u.role}</span>
+              {/if}
+            </td>
             <td class="muted">{formatDate(u.created_at)}</td>
             <td class="right">
               {#if u.id !== session.user?.id}
-                <button class="btn sm ghost danger" onclick={() => remove(u)}>Delete</button>
+                {#if can('admin')}<button class="btn sm ghost danger" onclick={() => remove(u)}>Delete</button>{/if}
               {/if}
             </td>
           </tr>

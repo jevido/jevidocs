@@ -20,5 +20,6 @@ func Migrations() []schema.Migration {
 		&migrations.M20260924000020CreateAnalyticsTables{},
 		&migrations.M20260924000050AddVersionsAndTrgm{},
 		&migrations.M20260924000060AddLocales{},
+		&migrations.M20260924000070AddUserRoles{},
 	}
 }

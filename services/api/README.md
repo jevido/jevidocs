@@ -179,6 +179,13 @@ type AdminPageInput = {
 type AdminPage = AdminPageInput & { id: number; project: string; updated_at: string; created_at: string }
 ```
 
+Roles: `viewer` (GET only, plus preview and own tokens/password), `editor`
+(also pages, assets, imports, syncs, order; MCP write tools), `admin` (also
+project create/settings/delete, GitHub source settings, users). Enforced by
+`middleware.Role()` via `store.RequiredRole(method, path)`; `PUT
+/api/admin/users/{id}` `{role}` changes a role, and the last admin cannot be
+demoted or deleted. Admin page views include `updated_by` (editor's name).
+
 The first admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD` on start when no
 user exists.
 

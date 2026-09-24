@@ -140,7 +140,7 @@ func EnsureAdmin() error {
 		return err
 	}
 	name, _, _ := strings.Cut(email, "@")
-	return facades.Orm().Query().Create(&models.User{Name: name, Email: email, Password: hashed})
+	return facades.Orm().Query().Create(&models.User{Name: name, Email: email, Password: hashed, Role: RoleAdmin})
 }
 
 // Now is the current time, for timestamps set by hand.

@@ -25,15 +25,30 @@ func (r *UserController) Store(ctx http.Context) http.Response {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
+		Role     string `json:"role"`
 	}
 	if err := ctx.Request().Bind(&in); err != nil {
 		return ctx.Response().Json(http.StatusBadRequest, http.Json{"error": "invalid body"})
 	}
-	u, err := store.CreateUser(in.Name, in.Email, in.Password)
+	u, err := store.CreateUser(in.Name, in.Email, in.Password, in.Role)
 	if err != nil {
 		return fail(ctx, err)
 	}
 	return ctx.Response().Json(http.StatusCreated, store.ViewUser(u))
+}
+
+// Update changes a user's role: PUT /api/admin/users/{id} {role}.
+func (r *UserController) Update(ctx http.Context) http.Response {
+	var in struct {
+		Role string `json:"role"`
+	}
+	if err := ctx.Request().Bind(&in); err != nil {
+		return ctx.Response().Json(http.StatusBadRequest, http.Json{"error": "invalid body"})
+	}
+	if err := store.SetRole(routeID(ctx, "id"), in.Role); err != nil {
+		return fail(ctx, err)
+	}
+	return ok(ctx, http.Json{"ok": true})
 }
 
 func (r *UserController) Delete(ctx http.Context) http.Response {

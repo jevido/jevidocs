@@ -1,4 +1,4 @@
-export type User = { id: number; name: string; email: string }
+export type User = { id: number; name: string; email: string; role?: 'viewer' | 'editor' | 'admin' }
 
 export type Link = { text: string; url: string }
 
@@ -42,6 +42,7 @@ export type AdminPageInput = {
 export type AdminPage = AdminPageInput & {
   id: number
   project: string
+  updated_by?: string
   updated_at: string
   created_at: string
 }

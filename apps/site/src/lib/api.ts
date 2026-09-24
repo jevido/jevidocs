@@ -56,6 +56,7 @@ export type Page = {
   markdown: string
   locale?: string
   fallback?: boolean
+  draft?: boolean
   edit_url?: string
   updated_at: string
 }
@@ -121,7 +122,7 @@ export const api = {
   projects: (signal?: AbortSignal) => get<Project[]>('/api/projects', signal),
   project: (project: string, signal?: AbortSignal) => get<ProjectWithTree>(p(project) + loc('?'), signal),
   page: (project: string, slug: string, signal?: AbortSignal) =>
-    get<Page>(`${p(project)}/page?slug=${encodeURIComponent(slug)}${loc('&')}`, signal),
+    get<Page>(`${p(project)}/page?slug=${encodeURIComponent(slug)}${loc('&')}${previewParam()}`, signal),
   search: (project: string, q: string, signal?: AbortSignal) =>
     get<SearchResult[] | null>(`${p(project)}/search?q=${encodeURIComponent(q)}${loc('&')}`, signal),
   markdownUrl: (project: string, slug: string) =>
@@ -141,4 +142,15 @@ export const api = {
   },
   llmsUrl: (project: string) => `${API_URL}${p(project)}/llms.txt${loc('?')}`,
   llmsFullUrl: (project: string) => `${API_URL}${p(project)}/llms-full.txt${loc('?')}`,
+}
+
+// Draft preview links carry ?preview=<token>; pass it on to page reads so an
+// unpublished page shows. Read from the current URL at call time.
+function previewParam(): string {
+  try {
+    const t = new URLSearchParams(location.search).get('preview')
+    return t ? `&preview=${encodeURIComponent(t)}` : ''
+  } catch {
+    return ''
+  }
 }

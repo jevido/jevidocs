@@ -24,9 +24,10 @@ type userView struct {
 	ID    uint   `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
-func viewUser(u models.User) userView { return userView{u.ID, u.Name, u.Email} }
+func viewUser(u models.User) userView { return userView{u.ID, u.Name, u.Email, store.RoleOf(u)} }
 
 func (r *AdminController) Login(ctx http.Context) http.Response {
 	var in struct {
@@ -130,6 +131,7 @@ type adminPage struct {
 	Root        bool   `json:"root"`
 	Locale      string `json:"locale"`
 	Body        string `json:"body,omitempty"`
+	UpdatedBy   string `json:"updated_by,omitempty"` // editor's name
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 }
@@ -139,6 +141,9 @@ func viewAdminPage(p models.Project, pg models.Page, withBody bool) adminPage {
 		Icon: pg.Icon, Position: pg.Position, Section: pg.Section, Published: pg.Published, Root: pg.Root, Locale: pg.Locale}
 	if withBody {
 		v.Body = pg.Body
+		if pg.UpdatedBy != nil {
+			v.UpdatedBy = store.UserNames([]uint{*pg.UpdatedBy})[*pg.UpdatedBy]
+		}
 	}
 	if pg.CreatedAt != nil {
 		v.CreatedAt = pg.CreatedAt.ToIso8601String()
@@ -158,9 +163,20 @@ func (r *AdminController) Pages(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
+	var ids []uint
+	for _, pg := range pages {
+		if pg.UpdatedBy != nil {
+			ids = append(ids, *pg.UpdatedBy)
+		}
+	}
+	names := store.UserNames(ids)
 	out := make([]adminPage, 0, len(pages))
 	for _, pg := range pages {
-		out = append(out, viewAdminPage(p, pg, false))
+		v := viewAdminPage(p, pg, false)
+		if pg.UpdatedBy != nil {
+			v.UpdatedBy = names[*pg.UpdatedBy]
+		}
+		out = append(out, v)
 	}
 	return ok(ctx, out)
 }
@@ -190,6 +206,9 @@ func (r *AdminController) CreatePage(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
+	editor := middleware.User(ctx).ID
+	store.MarkEditedBy(pg.ID, editor)
+	pg.UpdatedBy = &editor
 	return ctx.Response().Json(http.StatusCreated, viewAdminPage(p, pg, true))
 }
 
@@ -210,6 +229,9 @@ func (r *AdminController) UpdatePage(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
+	editor := middleware.User(ctx).ID
+	store.MarkEditedBy(pg.ID, editor)
+	pg.UpdatedBy = &editor
 	return ok(ctx, viewAdminPage(p, pg, true))
 }
 

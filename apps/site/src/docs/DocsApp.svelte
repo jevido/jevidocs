@@ -126,6 +126,11 @@
   })
 
   const crumbs = $derived((page?.breadcrumbs ?? []).slice(0, -1))
+  // ~220 words a minute; code and markup count too, close enough for a hint.
+  const readingMinutes = $derived(
+    page?.markdown ? Math.max(1, Math.round(page.markdown.split(/\s+/).filter(Boolean).length / 220)) : 0,
+  )
+
   const updated = $derived.by(() => {
     if (!page?.updated_at) return ''
     const d = new Date(page.updated_at)
@@ -148,7 +153,7 @@
   <div class="progress" aria-hidden="true"></div>
 {/if}
 
-<ReaderExtras previous={page?.previous?.slug} next={page?.next?.slug} />
+<ReaderExtras previous={page?.previous?.slug} next={page?.next?.slug} onsearch={() => (searchOpen = true)} />
 
 <div class="layout" class:collapsed={sidebar.collapsed}>
   {#if drawerOpen}
@@ -240,6 +245,9 @@
         <div class="divider"></div>
         <MobileToc items={toc} />
 
+        {#if page.draft}
+          <p class="draft-note" role="note">Draft preview: this page is not published yet.</p>
+        {/if}
         {#if page.fallback}
           <p class="fallback-note" role="note">This page is not translated yet; showing the original.</p>
         {/if}
@@ -257,7 +265,9 @@
                 Edit this page
               </a>
             {/if}
-            {#if updated}<p class="updated">Last updated on {updated}</p>{/if}
+            {#if updated}<p class="updated">
+                Last updated on {updated}{#if readingMinutes}{' · '}{readingMinutes} min read{/if}
+              </p>{/if}
           </div>
           {#if page.previous || page.next}
             <div class="pager">
@@ -516,6 +526,14 @@
     text-decoration: none;
   }
   .edit:hover { color: var(--fg); }
+  .draft-note {
+    margin: 0 0 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--warn);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    color: var(--fg);
+  }
   .fallback-note {
     margin: 0 0 1rem;
     padding: 0.5rem 0.75rem;

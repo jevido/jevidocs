@@ -3,7 +3,9 @@
   import { go, href, router } from '../lib/router.svelte'
   import { startTranslation, takeTranslation } from '../lib/translation'
   import { toast } from '../lib/toast.svelte'
+  import { previewLink } from '../lib/export-api'
   import { formatDate, slugify } from '../lib/format'
+  import { can } from '../lib/roles'
   import { snippets } from '../lib/snippets'
   import Preview from '../lib/Preview.svelte'
   import HistoryDrawer from '../lib/HistoryDrawer.svelte'
@@ -55,6 +57,7 @@
   let loading = $state(initialId !== 'new')
   let busy = $state(false)
   let updatedAt = $state('')
+  let updatedBy = $state('')
   let html = $state('')
   let toc = $state.raw<TocItem[]>([])
   let previewError = $state('')
@@ -78,6 +81,7 @@
     form = input
     saved = JSON.stringify(input)
     updatedAt = p.updated_at
+        updatedBy = p.updated_by ?? ''
     historyOpen = false
   }
 
@@ -102,6 +106,7 @@
         form = input
         saved = JSON.stringify(input)
         updatedAt = p.updated_at
+        updatedBy = p.updated_by ?? ''
       })
       .catch(toast.error)
       .finally(() => (loading = false))
@@ -155,6 +160,7 @@
         const p = await api.updatePage(project, id, input)
         saved = JSON.stringify(form)
         updatedAt = p.updated_at
+        updatedBy = p.updated_by ?? ''
         toast.ok('Saved')
       }
     } catch (err) {
@@ -234,7 +240,7 @@
     <h1>{form.title || (isNew ? 'New page' : 'Untitled')}</h1>
     <p>
       {#if dirty}<span class="badge warn">Unsaved changes</span>{:else if !isNew}<span class="badge ok">Saved</span>{/if}
-      {#if updatedAt}<span class="muted"> · updated {formatDate(updatedAt)}</span>{/if}
+      {#if updatedAt}<span class="muted"> · updated {formatDate(updatedAt)}{#if updatedBy} by {updatedBy}{/if}</span>{/if}
     </p>
   </div>
   <div class="spacer"></div>
@@ -243,9 +249,18 @@
       <button class="btn" onclick={() => translate(l)} title="Start a {l} translation of this page">Translate: {l}</button>
     {/each}
   {/if}
+  {#if !isNew && !form.published}
+    <button
+      class="btn"
+      title="A 7-day link that shows this unpublished page on the docs site"
+      onclick={() =>
+        previewLink(initialProject, initialId as number)
+          .then(({ url }) => navigator.clipboard.writeText(url).then(() => toast.ok('Preview link copied')))
+          .catch(toast.error)}>Copy preview link</button>
+  {/if}
   {#if !isNew}<button class="btn" onclick={() => (historyOpen = true)}>History</button>{/if}
-  {#if !isNew}<button class="btn danger" onclick={remove}>Delete</button>{/if}
-  <button class="btn primary" onclick={save} disabled={busy || loading || (!dirty && !isNew)}>
+  {#if !isNew && can('editor')}<button class="btn danger" onclick={remove}>Delete</button>{/if}
+  <button class="btn primary" onclick={save} disabled={!can('editor') || busy || loading || (!dirty && !isNew)} title={can('editor') ? undefined : 'Viewers cannot save'}>
     {busy ? 'Saving…' : isNew ? 'Create page' : 'Save'} <kbd>⌘S</kbd>
   </button>
 </div>

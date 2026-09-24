@@ -74,6 +74,9 @@ func (r *AssetController) Show(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
+	if !store.AssetReadable(a, ctx.Request().Query("sig", "")) {
+		return fail(ctx, store.ErrNotFound)
+	}
 	res := ctx.Response().
 		Header("Cache-Control", "public, max-age=31536000, immutable").
 		Header("X-Content-Type-Options", "nosniff").

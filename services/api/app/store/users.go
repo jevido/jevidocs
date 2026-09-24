@@ -12,11 +12,12 @@ type UserView struct {
 	ID        uint   `json:"id"`
 	Name      string `json:"name"`
 	Email     string `json:"email"`
+	Role      string `json:"role"`
 	CreatedAt string `json:"created_at"`
 }
 
 func ViewUser(u models.User) UserView {
-	v := UserView{ID: u.ID, Name: u.Name, Email: u.Email}
+	v := UserView{ID: u.ID, Name: u.Name, Email: u.Email, Role: RoleOf(u)}
 	if u.CreatedAt != nil {
 		v.CreatedAt = u.CreatedAt.ToIso8601String()
 	}
@@ -48,7 +49,14 @@ func ValidatePassword(pw string) error {
 }
 
 // CreateUser adds an admin.
-func CreateUser(name, email, password string) (models.User, error) {
+// An empty role means editor.
+func CreateUser(name, email, password, role string) (models.User, error) {
+	if role == "" {
+		role = RoleEditor
+	}
+	if !ValidRole(role) {
+		return models.User{}, ValidationError{"role must be viewer, editor or admin"}
+	}
 	email = strings.ToLower(strings.TrimSpace(email))
 	name = strings.TrimSpace(name)
 	var u models.User
@@ -70,7 +78,7 @@ func CreateUser(name, email, password string) (models.User, error) {
 	if err != nil {
 		return u, err
 	}
-	u = models.User{Name: name, Email: email, Password: hashed}
+	u = models.User{Name: name, Email: email, Password: hashed, Role: role}
 	err = facades.Orm().Query().Create(&u)
 	return u, err
 }
@@ -86,6 +94,13 @@ func DeleteUser(self models.User, id uint) error {
 	}
 	if u.ID == 0 {
 		return ErrNotFound
+	}
+	if RoleOf(u) == RoleAdmin {
+		if n, err := adminCount(); err != nil {
+			return err
+		} else if n <= 1 {
+			return ValidationError{"cannot delete the last admin"}
+		}
 	}
 	if _, err := facades.Orm().Query().Where("user_id", u.ID).Delete(&models.ApiToken{}); err != nil {
 		return err

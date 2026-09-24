@@ -212,7 +212,7 @@ func DeleteProject(p models.Project) error {
 	return err
 }
 
-var pageListColumns = []string{"id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "root", "locale", "created_at", "updated_at"}
+var pageListColumns = []string{"id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "root", "locale", "updated_by", "created_at", "updated_at"}
 
 // pagesOf lists p's pages in p.Locale. For readers (published) a missing
 // translation falls back to the default-locale page, like fumadocs; for
@@ -286,7 +286,9 @@ type PageView struct {
 	Locale      string         `json:"locale"`
 	// Fallback is set when the page has no translation in the requested
 	// locale and the default-locale page is shown instead.
-	Fallback  bool   `json:"fallback"`
+	Fallback bool `json:"fallback"`
+	// Draft is set when an unpublished page is shown through a preview link.
+	Draft     bool   `json:"draft,omitempty"`
 	URL       string `json:"url"`
 	EditURL   string `json:"edit_url"`
 	UpdatedAt string `json:"updated_at"`
@@ -317,6 +319,10 @@ func ViewPage(p models.Project, slug string) (PageView, error) {
 	if err != nil {
 		return PageView{}, err
 	}
+	return viewOf(p, pg)
+}
+
+func viewOf(p models.Project, pg models.Page) (PageView, error) {
 	tree, err := Tree(p)
 	if err != nil {
 		return PageView{}, err

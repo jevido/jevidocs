@@ -68,6 +68,9 @@ type Page struct {
 	RenderVersion int `json:"-"`
 	// SourcePath is the file a synced page came from, e.g. guides/index.md.
 	SourcePath string `json:"source_path"`
+	// UpdatedBy is the user who last edited the page in the admin or over
+	// MCP; nil for file syncs and imports.
+	UpdatedBy *uint `json:"-"`
 	// Root makes a folder index page's folder a sidebar tab.
 	Root bool `json:"root"`
 	// Locale is '' for the project's default locale, else e.g. "nl".
@@ -80,6 +83,8 @@ type User struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"-"`
+	// Role is viewer, editor or admin (see store.RequiredRole).
+	Role string `json:"role"`
 }
 
 // ApiToken is a bearer token. Only its SHA-256 is stored. Kind is "session"
