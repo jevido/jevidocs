@@ -37,6 +37,9 @@
     <Icon name={copied ? 'check' : 'copy'} size={14} />
     {copied ? 'Copied' : 'Copy Markdown'}
   </button>
+  <!-- Links to a private page's Markdown cannot carry the reader's access,
+       so "Open in" is only offered for public projects. -->
+  {#if markdownUrl}
   <div class="menu-wrap">
     <button type="button" class="pill" aria-haspopup="menu" aria-expanded={menuOpen} onclick={() => (menuOpen = !menuOpen)}>
       Open
@@ -53,6 +56,7 @@
       </div>
     {/if}
   </div>
+  {/if}
 </div>
 
 <style>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { API_URL } from '../lib/api'
+  import { readerAuth } from '../lib/reader-auth.svelte'
 
   let { project, slug }: { project: string; slug: string } = $props()
 
@@ -38,7 +39,7 @@
     try {
       const res = await fetch(`${API_URL}/api/projects/${encodeURIComponent(project)}/feedback`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...readerAuth.headers(project) },
         body: JSON.stringify({ slug, helpful: vote === 'up', message: message.trim() }),
       })
       if (!res.ok) {

@@ -1,4 +1,7 @@
-export const API_URL: string = (import.meta.env.VITE_API_URL ?? 'https://api.jevidocs.jevido.app').replace(/\/$/, '')
+import { API_URL } from './api-base'
+import { readerAuth } from './reader-auth.svelte'
+
+export { API_URL }
 
 export type Link = { text: string; url: string }
 
@@ -18,6 +21,9 @@ export type Project = {
   default_locale?: string
   locale?: string
   versions?: VersionLink[]
+  // How the reader got in: public, or a private project through admin
+  // rights, membership or a share link.
+  access?: 'public' | 'admin' | 'member' | 'share'
   updated_at: string
 }
 
@@ -80,8 +86,12 @@ export class ApiError extends Error {
   }
 }
 
-async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(API_URL + path, { signal, headers: { Accept: 'application/json' } })
+async function get<T>(path: string, signal?: AbortSignal, project?: string): Promise<T> {
+  const res = await fetch(API_URL + path, {
+    signal,
+    headers: { Accept: 'application/json', ...readerAuth.headers(project) },
+  })
+  if (res.status === 401) readerAuth.expire()
   if (!res.ok) {
     let msg = res.statusText
     try {
@@ -106,10 +116,10 @@ const loc = (sep: '?' | '&') => (currentLocale ? `${sep}locale=${encodeURICompon
 
 export type AskAnswer = { answer: string; sources: { title: string; url: string }[] }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function post<T>(path: string, body: unknown, project?: string): Promise<T> {
   const res = await fetch(API_URL + path, {
     method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...readerAuth.headers(project) },
     body: JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))
@@ -118,13 +128,13 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const api = {
-  ask: (project: string, question: string) => post<AskAnswer>(`${p(project)}/ask`, { question }),
+  ask: (project: string, question: string) => post<AskAnswer>(`${p(project)}/ask`, { question }, project),
   projects: (signal?: AbortSignal) => get<Project[]>('/api/projects', signal),
-  project: (project: string, signal?: AbortSignal) => get<ProjectWithTree>(p(project) + loc('?'), signal),
+  project: (project: string, signal?: AbortSignal) => get<ProjectWithTree>(p(project) + loc('?'), signal, project),
   page: (project: string, slug: string, signal?: AbortSignal) =>
-    get<Page>(`${p(project)}/page?slug=${encodeURIComponent(slug)}${loc('&')}${previewParam()}`, signal),
+    get<Page>(`${p(project)}/page?slug=${encodeURIComponent(slug)}${loc('&')}${previewParam()}`, signal, project),
   search: (project: string, q: string, signal?: AbortSignal) =>
-    get<SearchResult[] | null>(`${p(project)}/search?q=${encodeURIComponent(q)}${loc('&')}`, signal),
+    get<SearchResult[] | null>(`${p(project)}/search?q=${encodeURIComponent(q)}${loc('&')}`, signal, project),
   markdownUrl: (project: string, slug: string) =>
     `${API_URL}${p(project)}/page.md?slug=${encodeURIComponent(slug)}${loc('&')}`,
   // One page view, fire and forget. text/plain avoids a CORS preflight; the
@@ -133,8 +143,10 @@ export const api = {
     try {
       const body = new Blob([JSON.stringify({ slug })], { type: 'text/plain' })
       const url = `${API_URL}${p(project)}/views`
-      if (!navigator.sendBeacon?.(url, body)) {
-        void fetch(url, { method: 'POST', body, keepalive: true, mode: 'cors' }).catch(() => {})
+      const headers = readerAuth.headers(project)
+      // sendBeacon cannot send headers; private projects need them.
+      if (Object.keys(headers).length > 0 || !navigator.sendBeacon?.(url, body)) {
+        void fetch(url, { method: 'POST', body, headers, keepalive: true, mode: 'cors' }).catch(() => {})
       }
     } catch {
       // analytics must never break reading

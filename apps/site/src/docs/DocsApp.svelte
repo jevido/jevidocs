@@ -10,6 +10,8 @@
   import SearchDialog from './SearchDialog.svelte'
   import Toc from './Toc.svelte'
   import TreeItems from './TreeItems.svelte'
+  import { openSignIn } from './ReaderAccount.svelte'
+  import { readerAuth } from '../lib/reader-auth.svelte'
   import RootToggle from './RootToggle.svelte'
   import ReaderExtras from './ReaderExtras.svelte'
   import MobileToc from './MobileToc.svelte'
@@ -25,6 +27,7 @@
 
   let project = $state<ProjectWithTree | null>(null)
   let projectError = $state<string | null>(null)
+  let maybePrivate = $state(false)
 
   // Root folders (fumadocs' sidebar tabs): the sidebar shows the tree of the
   // root that holds the current page, or everything outside any root.
@@ -57,7 +60,11 @@
   $effect(() => {
     const slug = route.project
     setLocale(route.locale)
+    // Reload when the reader signs in or out, and keep a ?share= token.
+    void readerAuth.version
+    readerAuth.captureShare(slug)
     projectError = null
+    maybePrivate = false
     if (!slug) {
       project = null
       projectError = 'No project in this URL. Try /docs or /p/<project>.'
@@ -70,14 +77,17 @@
       .catch((e: unknown) => {
         if ((e as Error).name === 'AbortError') return
         project = null
-        projectError =
-          e instanceof ApiError && e.status === 404 ? `Project “${slug}” does not exist.` : 'Could not reach the docs API.'
+        const missing = e instanceof ApiError && e.status === 404
+        // Private projects answer 404 too, so they stay invisible.
+        maybePrivate = missing && !untrack(() => readerAuth.user)
+        projectError = missing ? `Project “${slug}” does not exist.` : 'Could not reach the docs API.'
       })
     return () => ctrl.abort()
   })
 
   $effect(() => {
     const { project: p, slug, locale } = route
+    void readerAuth.version
     if (!p) return
     // A leading "nl/" may be a language: wait for the project to say so.
     if (/^[a-z]{2,3}(-[a-z0-9]+)?(\/|$)/.test(slug) && project?.slug !== p) return
@@ -185,8 +195,10 @@
     </div>
     {#if project}
       <div class="sidebar-foot">
-        <a href={api.llmsUrl(route.project)} target="_blank" rel="noreferrer">llms.txt</a>
-        <a href={api.llmsFullUrl(route.project)} target="_blank" rel="noreferrer">llms-full.txt</a>
+        {#if !project.access || project.access === 'public'}
+          <a href={api.llmsUrl(route.project)} target="_blank" rel="noreferrer">llms.txt</a>
+          <a href={api.llmsFullUrl(route.project)} target="_blank" rel="noreferrer">llms-full.txt</a>
+        {/if}
         <button class="collapse" type="button" aria-label="Collapse sidebar" title="Collapse sidebar" onclick={() => sidebar.toggle(true)}>
           <Icon name="chevronLeft" size={15} />
         </button>
@@ -198,9 +210,18 @@
     {#if projectError}
       <div class="state">
         <p class="code">404</p>
-        <h1>Project not found</h1>
-        <p>{projectError}</p>
-        <a class="btn btn-secondary" href="/docs">Go to the jevidocs docs</a>
+        {#if maybePrivate}
+          <h1>Project not found</h1>
+          <p>This project doesn’t exist, or it may be private: sign in or use a share link to read it.</p>
+          <div class="state-actions">
+            <button class="btn btn-primary" type="button" onclick={openSignIn}>Sign in</button>
+            <a class="btn btn-secondary" href="/docs">Go to the jevidocs docs</a>
+          </div>
+        {:else}
+          <h1>Project not found</h1>
+          <p>{projectError}</p>
+          <a class="btn btn-secondary" href="/docs">Go to the jevidocs docs</a>
+        {/if}
       </div>
     {:else if status === 'notfound'}
       <div class="state">
@@ -241,7 +262,9 @@
         {/if}
         <h1 class="title">{page.title}</h1>
         {#if page.description}<p class="description">{page.description}</p>{/if}
-        <PageActions markdown={page.markdown} markdownUrl={api.markdownUrl(route.project, page.slug)} />
+        <PageActions
+          markdown={page.markdown}
+          markdownUrl={project?.access && project.access !== 'public' ? '' : api.markdownUrl(route.project, page.slug)} />
         <div class="divider"></div>
         <MobileToc items={toc} />
 
@@ -542,4 +565,5 @@
     font-size: 0.85rem;
     color: var(--muted-fg);
   }
+  .state-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
 </style>

@@ -11,6 +11,7 @@
   import AssetsPanel from '../lib/AssetsPanel.svelte'
   import OpenAPIImport from '../lib/OpenAPIImport.svelte'
   import GitHubSource from '../lib/GitHubSource.svelte'
+  import AccessPanel from '../lib/AccessPanel.svelte'
   import type { AdminPage, ProjectInput } from '../lib/types'
 
   let { slug }: { slug: string } = $props()
@@ -18,7 +19,7 @@
   let form = $state<ProjectInput | null>(null)
   let managed = $state(false)
   let pages = $state.raw<AdminPage[]>([])
-  let tab = $state<'pages' | 'assets' | 'insights' | 'feedback' | 'settings'>('pages')
+  let tab = $state<'pages' | 'assets' | 'insights' | 'feedback' | 'access' | 'settings'>('pages')
   let busy = $state(false)
   let filter = $state('')
 
@@ -182,9 +183,26 @@
   </div>
   <div class="spacer"></div>
   <OpenAPIImport project={slug} onimported={load} />
-  <a class="btn" href={publicDocsUrl(slug)} target="_blank" rel="noreferrer">View docs ↗</a>
+  <a
+    class="btn"
+    href={publicDocsUrl(slug)}
+    target="_blank"
+    rel="noreferrer"
+    title={form && !form.public ? 'Private: sign in on the docs site with your jevidocs account to read it' : undefined}>
+    View docs ↗
+  </a>
   {#if can('editor')}<a class="btn primary" href={href(`/projects/${slug}/pages/new`)}>+ New page</a>{/if}
 </div>
+
+{#if form && !form.public}
+  <p class="private-note" role="note">
+    Private project: it shows as “not found” on the docs site until you <strong>sign in there</strong> (top right,
+    same account as the admin) or open a share link. Manage readers on the <button
+      type="button"
+      class="linklike"
+      onclick={() => (tab = 'access')}>Access</button> tab.
+  </p>
+{/if}
 
 {#if managed}
   <p class="managed-note" role="note">
@@ -198,6 +216,7 @@
   <button role="tab" aria-selected={tab === 'assets'} onclick={() => (tab = 'assets')}>Assets</button>
   <button role="tab" aria-selected={tab === 'insights'} onclick={() => (tab = 'insights')}>Insights</button>
   <button role="tab" aria-selected={tab === 'feedback'} onclick={() => (tab = 'feedback')}>Feedback</button>
+  <button role="tab" aria-selected={tab === 'access'} onclick={() => (tab = 'access')}>Access</button>
   <button role="tab" aria-selected={tab === 'settings'} onclick={() => (tab = 'settings')}>Settings</button>
 </div>
 
@@ -279,6 +298,8 @@
   <InsightsPanel project={slug} {pages} />
 {:else if tab === 'feedback'}
   <FeedbackPanel project={slug} />
+{:else if tab === 'access'}
+  <AccessPanel project={slug} isPublic={form?.public ?? true} />
 {:else if form}
   <form class="card card-pad settings" onsubmit={save}>
     <ProjectForm bind:value={form} lockSlug />
@@ -398,4 +419,21 @@
   .hint-order { font-size: 0.8rem; margin-left: 0.75rem; }
   .export-box { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 1rem 0; }
   .export-box p { margin: 0.25rem 0 0; }
+  .private-note {
+    margin: 0 0 1rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+  }
+  .linklike {
+    font: inherit;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+  }
 </style>

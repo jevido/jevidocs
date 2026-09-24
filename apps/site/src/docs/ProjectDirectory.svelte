@@ -2,11 +2,15 @@
   import { api, type Project } from '../lib/api'
   import Logo from '../lib/Logo.svelte'
   import ThemeToggle from '../lib/ThemeToggle.svelte'
+  import { readerAuth } from '../lib/reader-auth.svelte'
+  import ReaderAccount from './ReaderAccount.svelte'
 
   let projects = $state<Project[] | null>(null)
   let error = $state('')
 
   $effect(() => {
+    // Signed-in readers also see the private projects they may read.
+    void readerAuth.version
     const ctrl = new AbortController()
     api
       .projects(ctrl.signal)
@@ -31,12 +35,16 @@
     <a href="/docs">Docs</a>
     <a href="https://admin.jevidocs.jevido.app">Admin</a>
     <ThemeToggle />
+    <ReaderAccount />
   </nav>
 </header>
 
 <main id="content" tabindex="-1">
   <h1>Projects</h1>
-  <p class="lead">Documentation sites hosted on jevidocs.</p>
+  <p class="lead">
+    Documentation sites hosted on jevidocs.{#if !readerAuth.user}
+      Private projects appear here once you sign in.{/if}
+  </p>
 
   {#if error}
     <p class="error">Could not load projects: {error}</p>
@@ -50,7 +58,7 @@
     <div class="grid">
       {#each projects as p (p.slug)}
         <a class="card" href={href(p)}>
-          <span class="name">{p.name}</span>
+          <span class="name">{p.name}{#if !p.public}<span class="private">Private</span>{/if}</span>
           {#if p.description}<span class="desc">{p.description}</span>{/if}
           <span class="path">{href(p)}</span>
         </a>
@@ -95,4 +103,14 @@
   .path { margin-top: auto; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted-fg); }
   .skeleton { animation: pulse 1.2s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: 0.5; } }
+  .private {
+    margin-left: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    vertical-align: middle;
+    border: 1px solid color-mix(in oklab, var(--warn) 45%, var(--border));
+    color: var(--warn);
+  }
 </style>

@@ -4,6 +4,7 @@
   import Logo from '../lib/Logo.svelte'
   import ThemeToggle from '../lib/ThemeToggle.svelte'
   import { router } from '../lib/router.svelte'
+  import ReaderAccount from './ReaderAccount.svelte'
 
   let {
     project,
@@ -45,6 +46,9 @@
       {/if}
       <span>{project?.name ?? 'Docs'}</span>
     </a>
+    {#if project?.access && project.access !== 'public'}
+      <span class="private" title={project.access === 'share' ? 'Private: opened with a share link' : 'Private: visible because you are signed in'}>Private</span>
+    {/if}
     {#if versions.length > 1 && project}
       <select class="version" aria-label="Documentation version" value={project.slug} onchange={switchVersion}>
         {#each versions as v (v.slug)}
@@ -86,6 +90,7 @@
         </a>
       {/if}
       <ThemeToggle />
+      <ReaderAccount />
     </div>
   </div>
 </header>
@@ -183,4 +188,14 @@
     cursor: pointer;
   }
   .version:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .private {
+    flex: none;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--warn) 45%, var(--border));
+    color: var(--warn);
+    background: color-mix(in oklab, var(--warn) 10%, transparent);
+  }
 </style>
