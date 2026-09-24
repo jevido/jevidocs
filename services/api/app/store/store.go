@@ -156,7 +156,6 @@ func SaveProject(in ProjectInput, existing *models.Project) (models.Project, err
 	if in.Public != nil {
 		p.Public = *in.Public
 	}
-	var err error
 	if existing == nil {
 		err = facades.Orm().Query().Create(&p)
 	} else {
