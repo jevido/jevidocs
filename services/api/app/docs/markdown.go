@@ -298,8 +298,14 @@ func (r *docsRenderer) fencedCode(w util.BufWriter, src []byte, n ast.Node, ente
 	return ast.WalkSkipChildren, nil
 }
 
+// langAliases maps fence languages Chroma does not know to close relatives.
+var langAliases = map[string]string{"mdx": "markdown", "md": "markdown", "svelte": "html", "vue": "html", "env": "bash", "sh": "bash", "shell": "bash", "console": "bash"}
+
 func highlight(w util.BufWriter, lang, code string) error {
 	var lexer chroma.Lexer
+	if alias, ok := langAliases[strings.ToLower(lang)]; ok {
+		lang = alias
+	}
 	if lang != "" {
 		lexer = lexers.Get(lang)
 	}
