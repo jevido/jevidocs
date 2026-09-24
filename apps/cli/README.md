@@ -4,8 +4,12 @@
 Markdown in git and push it to a jevidocs project, or pull a project down to
 files. Standard library only.
 
+Download a binary from https://jevidocs.jevido.app/downloads/ (for example
+`jevidocs-linux-amd64`, `jevidocs-darwin-arm64`, `jevidocs-windows-amd64.exe`;
+`checksums.txt` lists SHA-256 sums), or build it: `go build -o jevidocs .`
+in this directory.
+
 ```sh
-go install dev.jevido/jevidocs/apps/cli@latest   # or: go build -o jevidocs .
 jevidocs init docs
 JEVIDOCS_TOKEN=jd_... jevidocs push docs -project my-docs -prune
 jevidocs pull out -project my-docs

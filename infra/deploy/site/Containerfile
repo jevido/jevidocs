@@ -41,11 +41,25 @@ RUN mkdir -p /prev/assets && cd /prev/assets \
     fi \
  && ls -1 | wc -l
 
+# --- CLI downloads: jevidocs for every common platform ------------------------
+# apps/cli is standard library only, so cross-compiling needs nothing extra.
+FROM docker.io/library/golang:1.27-alpine AS cli
+ENV GOWORK=off CGO_ENABLED=0
+WORKDIR /src
+COPY apps/cli ./
+RUN set -eu; mkdir -p /out; \
+    for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do \
+      os=${target%/*}; arch=${target#*/}; ext=""; [ "$os" = windows ] && ext=".exe"; \
+      GOOS=$os GOARCH=$arch go build -trimpath -ldflags='-s -w' -o /out/jevidocs-$os-$arch$ext .; \
+    done; \
+    cd /out && sha256sum jevidocs-* > checksums.txt
+
 FROM docker.io/library/nginx:1.29-alpine
 COPY infra/deploy/site/nginx.conf /etc/nginx/conf.d/default.conf
 COPY infra/deploy/shared/drain.sh /drain.sh
 COPY --from=previous /prev/assets /usr/share/nginx/html/assets
 COPY --from=site /src/apps/site/dist /usr/share/nginx/html
+COPY --from=cli /out /usr/share/nginx/html/downloads
 EXPOSE 80
 # drain.sh keeps serving briefly after a stop request, then asks nginx for a
 # graceful quit (SIGQUIT), so a rolling deploy never drops requests.

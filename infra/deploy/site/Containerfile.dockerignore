@@ -4,6 +4,7 @@
 !bun.lock
 !bunfig.toml
 !apps/site
+!apps/cli
 !apps/admin/package.json
 !infra/deploy/site
 !infra/deploy/shared

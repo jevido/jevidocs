@@ -19,7 +19,7 @@ repository root as context.
 
 A push to `main` deploys each resource whose **watch paths** changed:
 
-- jevidocs-site: `apps/site/**`, `packages/**`, `infra/deploy/site/**`,
+- jevidocs-site: `apps/site/**`, `apps/cli/**`, `packages/**`, `infra/deploy/site/**`,
   `infra/deploy/shared/**`, `package.json`, `bun.lock`, `bunfig.toml`
 - jevidocs-admin: `apps/admin/**`, `packages/**`, `infra/deploy/admin/**`,
   `infra/deploy/shared/**`, `package.json`, `bun.lock`, `bunfig.toml`
@@ -45,7 +45,8 @@ curl -X POST -H "Authorization: Bearer $COOLIFY_API_KEY" \
 - **site** type-checks and builds `apps/site` with `VITE_API_URL` pointing
   at the API, and serves it with nginx. `/docs/*` and `/p/*` fall back to
   their single-page entries; `/llms.txt`, `/llms-full.txt` and
-  `/docs/<slug>.md` redirect to the API.
+  `/docs/<slug>.md` redirect to the API. It also cross-compiles `apps/cli`
+  and serves the binaries and `checksums.txt` from `/downloads/`.
 - **admin** does the same for `apps/admin` (hash router, no fallbacks).
 - **api** runs the tests, builds `services/api` and runs it as a non-root
   user. On start it migrates, creates the first admin from `ADMIN_EMAIL` /
