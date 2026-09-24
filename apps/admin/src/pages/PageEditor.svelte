@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from '../lib/api.svelte'
   import { go, href, router } from '../lib/router.svelte'
+  import { startTranslation, takeTranslation } from '../lib/translation'
   import { toast } from '../lib/toast.svelte'
   import { formatDate, slugify } from '../lib/format'
   import { snippets } from '../lib/snippets'
@@ -28,8 +29,29 @@
     locale: '',
   }
 
-  let form = $state<AdminPageInput>({ ...empty })
-  let saved = $state(JSON.stringify(empty))
+  const draft = initialId === 'new' ? takeTranslation() : null
+  let form = $state<AdminPageInput>(draft ?? { ...empty })
+  let saved = $state(JSON.stringify(draft ? { ...empty } : empty))
+
+  // Other languages of the project this page could be translated into.
+  let locales = $state<string[]>([])
+  let defaultLocale = $state('')
+  api
+    .projects()
+    .then((all) => {
+      const p = all.find((x) => x.slug === initialProject)
+      locales = p?.locales ?? []
+      defaultLocale = p?.default_locale ?? ''
+    })
+    .catch(() => {})
+  const missingLocales = $derived(
+    locales.filter((l) => l !== (form.locale || defaultLocale)),
+  )
+
+  function translate(locale: string) {
+    startTranslation({ ...form, locale: locale === defaultLocale ? '' : locale })
+    go(`/projects/${initialProject}/pages/new`)
+  }
   let loading = $state(initialId !== 'new')
   let busy = $state(false)
   let updatedAt = $state('')
@@ -210,6 +232,11 @@
     </p>
   </div>
   <div class="spacer"></div>
+  {#if !isNew && locales.length > 1}
+    {#each missingLocales as l (l)}
+      <button class="btn" onclick={() => translate(l)} title="Start a {l} translation of this page">Translate: {l}</button>
+    {/each}
+  {/if}
   {#if !isNew}<button class="btn" onclick={() => (historyOpen = true)}>History</button>{/if}
   {#if !isNew}<button class="btn danger" onclick={remove}>Delete</button>{/if}
   <button class="btn primary" onclick={save} disabled={busy || loading || (!dirty && !isNew)}>
