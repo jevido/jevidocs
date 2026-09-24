@@ -80,6 +80,7 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
 const p = (project: string) => `/api/projects/${encodeURIComponent(project)}`
 
 export const api = {
+  projects: (signal?: AbortSignal) => get<Project[]>('/api/projects', signal),
   project: (project: string, signal?: AbortSignal) => get<ProjectWithTree>(p(project), signal),
   page: (project: string, slug: string, signal?: AbortSignal) =>
     get<Page>(`${p(project)}/page?slug=${encodeURIComponent(slug)}`, signal),
