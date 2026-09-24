@@ -59,6 +59,8 @@ func RequiredRole(method, path string) string {
 		return RoleAdmin // update or delete project settings
 	case len(parts) == 5 && parts[2] == "projects" && parts[4] == "source" && method == "PUT":
 		return RoleAdmin // repository and webhook secret
+	case len(parts) >= 5 && parts[2] == "projects" && (parts[4] == "members" || parts[4] == "shares"):
+		return RoleAdmin // who may read a private project
 	}
 	return RoleEditor
 }

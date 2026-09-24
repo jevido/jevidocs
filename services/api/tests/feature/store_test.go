@@ -116,3 +116,36 @@ func (s *StoreTestSuite) TestTokens() {
 	_, _, err = store.UserForToken(plain)
 	s.ErrorIs(err, store.ErrNotFound)
 }
+
+func (s *StoreTestSuite) TestPrivateProjectAccess() {
+	priv := false
+	p, err := store.SaveProject(store.ProjectInput{Slug: s.project.Slug + "-private", Name: "Private", Public: &priv}, nil)
+	s.Require().NoError(err)
+	defer func() { s.NoError(store.DeleteProject(p)) }()
+
+	_, err = store.ReadableProject(p.Slug, store.Reader{})
+	s.ErrorIs(err, store.ErrNotFound, "anonymous readers do not see private projects")
+
+	viewer := models.User{Name: "v", Email: p.Slug + "@example.com", Password: "x", Role: store.RoleViewer}
+	s.Require().NoError(facades.Orm().Query().Create(&viewer))
+	defer func() { _, _ = facades.Orm().Query().Delete(&viewer) }()
+
+	_, err = store.ReadableProject(p.Slug, store.Reader{User: &viewer})
+	s.ErrorIs(err, store.ErrNotFound, "non-members do not see it")
+	s.Require().NoError(store.AddMember(p, viewer.ID))
+	got, err := store.ReadableProject(p.Slug, store.Reader{User: &viewer})
+	s.Require().NoError(err)
+	s.Equal(store.AccessMember, got.Access)
+	s.Require().NoError(store.RemoveMember(p, viewer.ID))
+
+	token, link, err := store.CreateShare(p, "client", 7, viewer)
+	s.Require().NoError(err)
+	got, err = store.ReadableProject(p.Slug, store.Reader{Share: token})
+	s.Require().NoError(err)
+	s.Equal(store.AccessShare, got.Access)
+	_, err = store.ReadableProject(s.project.Slug, store.Reader{Share: token})
+	s.NoError(err, "the public project stays readable")
+	s.Require().NoError(store.RevokeShare(p, link.ID))
+	_, err = store.ReadableProject(p.Slug, store.Reader{Share: token})
+	s.ErrorIs(err, store.ErrNotFound, "revoked links stop working")
+}

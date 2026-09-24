@@ -33,25 +33,27 @@ type Link struct {
 }
 
 type ProjectView struct {
-	Slug          string        `json:"slug"`
-	Name          string        `json:"name"`
-	Description   string        `json:"description"`
-	GithubURL     string        `json:"github_url"`
-	Links         []Link        `json:"links"`
-	Public        bool          `json:"public"`
-	Managed       bool          `json:"managed"`
-	EditURL       string        `json:"edit_url"`
-	Banner        string        `json:"banner"`
-	Accent        string        `json:"accent"`
-	LogoURL       string        `json:"logo_url"`
-	VersionGroup  string        `json:"version_group"`
-	VersionLabel  string        `json:"version_label"`
-	Locales       []string      `json:"locales"`
-	DefaultLocale string        `json:"default_locale"`
-	Locale        string        `json:"locale"`
-	UpdatedAt     string        `json:"updated_at"`
-	Tree          *docs.Tree    `json:"tree,omitempty"`
-	Versions      []VersionLink `json:"versions,omitempty"`
+	Slug          string   `json:"slug"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	GithubURL     string   `json:"github_url"`
+	Links         []Link   `json:"links"`
+	Public        bool     `json:"public"`
+	Managed       bool     `json:"managed"`
+	EditURL       string   `json:"edit_url"`
+	Banner        string   `json:"banner"`
+	Accent        string   `json:"accent"`
+	LogoURL       string   `json:"logo_url"`
+	VersionGroup  string   `json:"version_group"`
+	VersionLabel  string   `json:"version_label"`
+	Locales       []string `json:"locales"`
+	DefaultLocale string   `json:"default_locale"`
+	Locale        string   `json:"locale"`
+	// Access is how the reader may read it: public, admin, member or share.
+	Access    string        `json:"access,omitempty"`
+	UpdatedAt string        `json:"updated_at"`
+	Tree      *docs.Tree    `json:"tree,omitempty"`
+	Versions  []VersionLink `json:"versions,omitempty"`
 	// Ask is true when Ask AI is enabled on this API.
 	Ask bool `json:"ask"`
 }
@@ -62,7 +64,7 @@ func ViewProject(p models.Project) ProjectView {
 	v := ProjectView{Slug: p.Slug, Name: p.Name, Description: p.Description, GithubURL: p.GithubURL,
 		Links: links, Public: p.Public, Managed: p.Managed, EditURL: p.EditURL, Banner: p.Banner,
 		Accent: p.Accent, LogoURL: p.LogoURL, VersionGroup: p.VersionGroup, VersionLabel: p.VersionLabel,
-		Locales: Locales(p), DefaultLocale: DefaultLocale(p), Locale: p.Locale}
+		Locales: Locales(p), DefaultLocale: DefaultLocale(p), Locale: p.Locale, Access: p.Access}
 	if p.UpdatedAt != nil {
 		v.UpdatedAt = p.UpdatedAt.ToIso8601String()
 	}
@@ -195,7 +197,7 @@ func SaveProject(in ProjectInput, existing *models.Project) (models.Project, err
 }
 
 // projectTables hold rows keyed by project_id that go with the project.
-var projectTables = []string{"page_revisions", "feedback", "page_views", "search_queries", "assets"}
+var projectTables = []string{"page_revisions", "feedback", "page_views", "search_queries", "assets", "project_members", "share_links"}
 
 // DeleteProject removes a project, its pages and everything attached to it
 // (assets would otherwise stay publicly reachable by ID).

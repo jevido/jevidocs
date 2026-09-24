@@ -57,7 +57,7 @@ func readResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadR
 	if err != nil {
 		return nil, mcp.ResourceNotFoundError(uri)
 	}
-	p, err := store.FindProject(project, false)
+	p, err := store.ReadableProject(project, readerOf(req.Extra))
 	if err != nil {
 		return nil, mcp.ResourceNotFoundError(uri)
 	}

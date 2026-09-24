@@ -98,14 +98,14 @@ func registerDocsTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "list_projects", Description: "List the public documentation projects.", Annotations: readOnly,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, listProjectsOut, error) {
-		ps, err := store.ListProjects(false)
+		ps, err := store.ReadableProjects(readerOf(req.Extra))
 		return nil, listProjectsOut{Projects: ps}, err
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "get_page_tree", Description: "Get a project's page tree (sidebar): folders, pages and separators with their slugs.", Annotations: readOnly,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in projectArg) (*mcp.CallToolResult, treeOut, error) {
-		p, err := store.FindProject(in.Project, false)
+		p, err := store.ReadableProject(in.Project, readerOf(req.Extra))
 		if err != nil {
 			return nil, treeOut{}, err
 		}
@@ -116,7 +116,7 @@ func registerDocsTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "read_page", Description: "Read one documentation page as Markdown.", Annotations: readOnly,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in readPageArgs) (*mcp.CallToolResult, readPageOut, error) {
-		p, err := store.FindProject(in.Project, false)
+		p, err := store.ReadableProject(in.Project, readerOf(req.Extra))
 		if err != nil {
 			return nil, readPageOut{}, err
 		}
@@ -131,7 +131,7 @@ func registerDocsTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "search_docs", Description: "Full-text search a project's documentation. Returns pages and headings with snippets.", Annotations: readOnly,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in searchArgs) (*mcp.CallToolResult, searchOut, error) {
-		p, err := store.FindProject(in.Project, false)
+		p, err := store.ReadableProject(in.Project, readerOf(req.Extra))
 		if err != nil {
 			return nil, searchOut{}, err
 		}

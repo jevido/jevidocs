@@ -13,7 +13,7 @@ type DocsController struct{}
 func NewDocsController() *DocsController { return &DocsController{} }
 
 func (r *DocsController) Projects(ctx http.Context) http.Response {
-	ps, err := store.ListProjects(false)
+	ps, err := store.ReadableProjects(reader(ctx))
 	if err != nil {
 		return fail(ctx, err)
 	}
@@ -39,17 +39,24 @@ func (r *DocsController) Project(ctx http.Context) http.Response {
 }
 
 func (r *DocsController) Page(ctx http.Context) http.Response {
-	p, err := publicProject(ctx)
-	if err != nil {
-		return fail(ctx, err)
-	}
 	slug := ctx.Request().Query("slug", "")
 	if token := ctx.Request().Query("preview", ""); token != "" {
+		// A signed preview link is its own permission, also for pages of
+		// private projects.
+		p, err := store.FindProject(ctx.Request().Route("project"), true)
+		if err != nil {
+			return fail(ctx, err)
+		}
+		p = store.WithLocale(p, ctx.Request().Query("locale", ""))
 		v, err := store.ViewPreview(p, slug, token)
 		if err != nil {
 			return fail(ctx, err)
 		}
 		return ctx.Response().Header("Cache-Control", "no-store").Json(http.StatusOK, v)
+	}
+	p, err := publicProject(ctx)
+	if err != nil {
+		return fail(ctx, err)
 	}
 	v, err := store.ViewPage(p, slug)
 	if err != nil {
@@ -74,7 +81,7 @@ func (r *DocsController) Search(ctx http.Context) http.Response {
 
 func text(ctx http.Context, contentType, body string) http.Response {
 	return ctx.Response().Header("Content-Type", contentType+"; charset=utf-8").
-		Header("Cache-Control", "public, max-age=60").
+		Header("Cache-Control", cacheControl(ctx)).
 		String(http.StatusOK, body)
 }
 

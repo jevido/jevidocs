@@ -7,6 +7,7 @@ import (
 	"github.com/goravel/framework/contracts/http"
 
 	"dev.jevido/jevidocs/services/api/app/facades"
+	"dev.jevido/jevidocs/services/api/app/http/middleware"
 	"dev.jevido/jevidocs/services/api/app/models"
 	"dev.jevido/jevidocs/services/api/app/store"
 )
@@ -37,12 +38,32 @@ func routeID(ctx http.Context, key string) uint {
 	return uint(n)
 }
 
-// publicProject loads the route's public project reading in the request's
+// reader is who is reading: an optional bearer token (signed-in user) and
+// an optional share-link token in X-Jevidocs-Share.
+func reader(ctx http.Context) store.Reader {
+	return store.ReaderFrom(middleware.BearerToken(ctx), ctx.Request().Header("X-Jevidocs-Share", ""))
+}
+
+const privateKey = "jevidocs.private"
+
+// publicProject loads the route's project if the reader may read it (public,
+// or private with admin/member/share access), reading in the request's
 // ?locale= (unknown or default locales read the default).
 func publicProject(ctx http.Context) (models.Project, error) {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := store.ReadableProject(ctx.Request().Route("project"), reader(ctx))
 	if err != nil {
 		return p, err
 	}
+	if !p.Public {
+		ctx.WithValue(privateKey, true)
+	}
 	return store.WithLocale(p, ctx.Request().Query("locale", "")), nil
+}
+
+// cacheControl keeps private projects out of shared caches.
+func cacheControl(ctx http.Context) string {
+	if private, _ := ctx.Value(privateKey).(bool); private {
+		return "private, no-store"
+	}
+	return "public, max-age=60"
 }

@@ -33,6 +33,9 @@ type Project struct {
 	// language. Pages of DefaultLocale are stored with locale ''.
 	Locales       string `json:"locales"`
 	DefaultLocale string `json:"default_locale"`
+	// Access is how the current reader may read the project (public,
+	// admin, member or share). Not stored; set by store.ReadableProject.
+	Access string `gorm:"-" json:"-"`
 	// Locale is the language a request reads in ('' = default). Not stored:
 	// controllers set it so every store read follows the request's locale.
 	Locale string `gorm:"-" json:"-"`
