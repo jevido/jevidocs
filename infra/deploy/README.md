@@ -60,6 +60,14 @@ characters), `APP_NAME`, `APP_URL`, `SITE_URL`, `ADMIN_EMAIL`,
 internal network). The site and admin images take `VITE_API_URL` as a build
 argument, defaulting to the production API.
 
+## Database
+
+jevidocs-db is a Coolify-managed PostgreSQL 18 resource (`postgres:18-alpine`),
+not exposed publicly. Its volume is mounted on `/var/lib/postgresql`, the
+path Postgres 18 needs. Coolify backs up the `jevidocs` database daily at
+03:00 to `/data/coolify/backups/` on the VPS and keeps 7. The API migrates on
+start and refuses to start if it cannot.
+
 ## Zero-downtime deploys
 
 Same approach as jevido/work (its decision 0009): every image runs its server
