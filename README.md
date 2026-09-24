@@ -5,17 +5,28 @@ rebuilt on **Go (Goravel)**, **Svelte 5** and **PostgreSQL**. Pages live in a
 database instead of files, are edited in an admin app or by agents over MCP,
 and are read on a fumadocs-style docs site.
 
-- **Docs site:** sidebar page tree, search (⌘K), table of contents with
-  scrollspy, breadcrumbs, previous/next, light/dark theme, copy Markdown,
-  "open in ChatGPT/Claude", and the fumadocs components: Callout, Cards, Tabs,
-  Steps, Accordion, Files and titled, highlighted code blocks.
-- **Admin:** projects, pages with a live Markdown preview and component
-  snippets, API tokens.
+- **Docs site:** sidebar page tree with root-folder tabs, search (⌘K) with
+  heading results, table of contents with scrollspy, breadcrumbs,
+  previous/next (`[` / `]`), light/dark theme and accent presets, copy
+  Markdown, "open in ChatGPT/Claude", edit-this-page links, page feedback,
+  mobile TOC, print styles, a project directory at `/p`.
+- **Markdown:** CommonMark + GFM, front matter, the fumadocs components
+  (Callout, Cards, Tabs, Steps, Accordion, Files), GitHub alerts, code
+  blocks with titles, highlighted lines, line numbers, diff/focus
+  notations, Mermaid diagrams and zoomable images. Rendered in Go.
+- **Admin:** projects (theme, banner, navbar links), pages with a live
+  preview, component snippets and paste/drop image upload, revision
+  history with diff and restore, assets, feedback, insights (views, top and
+  zero-result searches), OpenAPI import, users and API tokens.
 - **API:** public read endpoints (projects, trees, pages, search,
-  `llms.txt`, `llms-full.txt`, per-page Markdown) and authenticated admin
-  endpoints.
+  `llms.txt`, `llms-full.txt`, per-page Markdown, sitemap) and authenticated
+  admin endpoints, including bulk sync from files.
 - **MCP:** hosted at `/mcp`; agents list, read and search docs, and with a
   token create, update and delete pages.
+- **OpenAPI:** generate an API reference (a page per operation) from an
+  OpenAPI 3 spec.
+- **CLI:** `jevidocs init | push | pull | search | openapi` for docs as code;
+  binaries at https://jevidocs.jevido.app/downloads/.
 
 jevidocs documents itself: the Markdown under
 [`services/api/content`](services/api/content) is synced into the `jevidocs`
@@ -38,7 +49,7 @@ Follows the [jevido/work](https://github.com/jevido/work) monorepo layout.
 
 | Directory   | What goes there                                                        |
 | ----------- | ---------------------------------------------------------------------- |
-| `apps/`     | Things a person opens: `site` (landing + docs reader), `admin`.         |
+| `apps/`     | Things a person opens: `site` (landing + docs reader), `admin`, `cli`.  |
 | `services/` | Things that run unattended: `api` (Goravel REST API + hosted MCP).      |
 | `packages/` | Code shared by two or more units (none yet).                            |
 | `infra/`    | Podman compose for development, Containerfiles and deploy config.       |
