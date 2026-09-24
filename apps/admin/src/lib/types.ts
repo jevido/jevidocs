@@ -13,6 +13,8 @@ export type Project = {
   banner: string
   accent: string
   logo_url: string
+  version_group?: string
+  version_label?: string
   managed?: boolean
   updated_at: string
 }

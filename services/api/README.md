@@ -68,12 +68,13 @@ All responses are JSON unless noted. Errors: `{"error": "message"}` with a
 | ------ | ---- | ------- |
 | GET | `/health` | `{status, database, framework}` |
 | GET | `/api/projects` | `Project[]` (public projects) |
-| GET | `/api/projects/{project}` | `Project & {tree: PageTree}` |
+| GET | `/api/projects/{project}` | `Project & {tree: PageTree, versions?: VersionLink[]}` |
 | GET | `/api/projects/{project}/page?slug=a/b` | `Page` (slug `""` = index) |
 | GET | `/api/projects/{project}/search?q=term` | `SearchResult[]` (max 20) |
 | GET | `/api/projects/{project}/llms.txt` | text/plain index of pages |
 | GET | `/api/projects/{project}/llms-full.txt` | text/plain, every page's Markdown |
 | GET | `/api/projects/{project}/page.md?slug=a/b` | text/markdown of one page |
+| POST | `/api/hooks/github/{project}` | GitHub push webhook (HMAC `X-Hub-Signature-256` with the project's source secret) → 202 |
 | GET | `/api/assets/{id}/{name}` | the asset's bytes (immutable cache, `nosniff`, CSP on SVG) |
 | POST | `/api/projects/{project}/views` | `{slug}` (any content type, parsed as JSON) → `{ok: true}`; bots, unknown pages and >300/h per IP are ignored |
 | POST | `/api/projects/{project}/feedback` | `{slug, helpful, message?}` → `{ok: true}` (message ≤ 2000 chars; 20 per IP per hour) |
@@ -84,7 +85,10 @@ type Project = {
   github_url: string; // may be ""
   links: { text: string; url: string }[]; // navbar links
   public: boolean; updated_at: string;
+  version_group: string; version_label: string; // "" when unversioned
 }
+
+type VersionLink = { slug: string; name: string; label: string; url: string } // same version_group, newest label first
 
 type PageTree = { name: string; children: TreeNode[] }
 type TreeNode =
@@ -111,6 +115,7 @@ type SearchResult = {
   title: string;         // page or heading title
   page_title: string;
   snippet: string;       // HTML, matches wrapped in <mark>
+  fuzzy?: true;          // trigram "similar result" when nothing matched exactly
 }
 ```
 
@@ -126,7 +131,11 @@ type SearchResult = {
 | POST | `/api/admin/projects` | `{slug, name, description, github_url, links, public}` → `Project` |
 | PUT | `/api/admin/projects/{project}` | same fields → `Project` |
 | DELETE | `/api/admin/projects/{project}` | → `{ok: true}` |
+| PUT | `/api/admin/projects/{project}/order` | `{items: [{id, position}]}` → `{ok: true}` (one transaction; only that project's pages) |
 | PUT | `/api/admin/projects/{project}/sync` | `{files: {"guides/index.md": "..."}, prune}` → `{created, updated, unchanged, deleted}` |
+| GET | `/api/admin/projects/{project}/source` | → `{repo, ref, path, secret, synced_at, status, webhook_url}` (GitHub source) |
+| PUT | `/api/admin/projects/{project}/source` | `{repo, ref, path}` → same; empty `repo` disconnects |
+| POST | `/api/admin/projects/{project}/source/sync` | → `202 {started}`; poll `GET .../source` for `status` / `synced_at` |
 | GET | `/api/admin/projects/{project}/pages` | → `AdminPage[]` without `body` |
 | POST | `/api/admin/projects/{project}/pages` | `AdminPageInput` → `AdminPage` |
 | GET | `/api/admin/projects/{project}/pages/{id}` | → `AdminPage` |

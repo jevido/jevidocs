@@ -58,6 +58,20 @@ For each matching page, up to three sections whose heading or text contains a
 query word are returned as `heading` results, linking to `page#heading`.
 
 </Step>
+<Step>
+
+### Similar results
+
+When neither full-text nor substring search finds anything, typos get a
+second chance: page titles and section headings are compared with the query
+by trigram similarity (`pg_trgm`). Only hits close to the best score are
+kept, and each is marked `"fuzzy": true`; the search dialog then says
+"Showing similar results". Searching `calout` finds **Callout**.
+
+The migration enables `pg_trgm` when the Postgres server offers it and skips
+it otherwise; without the extension this step is simply left out.
+
+</Step>
 </Steps>
 
 <Callout type="info">

@@ -39,6 +39,9 @@ func SyncProject(in ProjectInput, fsys fs.FS, keepPrefix string) error {
 		if in.Banner == "" {
 			in.Banner = p.Banner
 		}
+		if in.VersionGroup == "" && in.VersionLabel == "" {
+			in.VersionGroup, in.VersionLabel = p.VersionGroup, p.VersionLabel
+		}
 		in.Slug = ""
 		p, err = SaveProject(in, &p)
 	}

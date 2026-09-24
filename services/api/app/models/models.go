@@ -25,6 +25,17 @@ type Project struct {
 	// Accent is a CSS colour or a preset name; LogoURL an https image.
 	Accent  string `json:"accent"`
 	LogoURL string `gorm:"column:logo_url" json:"logo_url"`
+	// VersionGroup ties projects that are versions of one site together;
+	// VersionLabel names this one ("v2").
+	VersionGroup string `json:"version_group"`
+	VersionLabel string `json:"version_label"`
+	// GitHub source (see store.SyncFromGitHub). Never in public views.
+	SourceRepo     string           `json:"-"`
+	SourceRef      string           `json:"-"`
+	SourcePath     string           `json:"-"`
+	SourceSecret   string           `json:"-"`
+	SourceSyncedAt *carbon.DateTime `json:"-"`
+	SourceStatus   string           `json:"-"`
 	// Managed projects are synced from files on start (the jevidocs docs).
 	Managed bool `json:"managed"`
 }

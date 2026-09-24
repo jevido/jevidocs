@@ -12,8 +12,12 @@ export type Project = {
   banner?: string
   accent?: string
   logo_url?: string
+  version_label?: string
+  versions?: VersionLink[]
   updated_at: string
 }
+
+export type VersionLink = { slug: string; name: string; label: string; url: string }
 
 export type PageRef = { type: 'page'; name: string; slug: string; icon?: string }
 export type TreeNode =
@@ -57,6 +61,7 @@ export type SearchResult = {
   title: string
   page_title: string
   snippet: string
+  fuzzy?: boolean
 }
 
 export class ApiError extends Error {

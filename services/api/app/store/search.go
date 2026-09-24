@@ -19,6 +19,8 @@ type SearchResult struct {
 	PageTitle string `json:"page_title"`
 	Snippet   string `json:"snippet"`
 	URL       string `json:"url"`
+	// Fuzzy marks a trigram "did you mean" match (see search_fuzzy.go).
+	Fuzzy bool `json:"fuzzy,omitempty"`
 }
 
 // Markers around matches from ts_headline. The snippet is plain text that
@@ -81,6 +83,9 @@ func Search(p models.Project, q string, limit int) ([]SearchResult, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	if len(rows) == 0 {
+		return fuzzySearch(p, q, limit)
 	}
 
 	out := []SearchResult{}

@@ -8,6 +8,7 @@
   import InsightsPanel from '../lib/InsightsPanel.svelte'
   import AssetsPanel from '../lib/AssetsPanel.svelte'
   import OpenAPIImport from '../lib/OpenAPIImport.svelte'
+  import GitHubSource from '../lib/GitHubSource.svelte'
   import type { AdminPage, ProjectInput } from '../lib/types'
 
   let { slug }: { slug: string } = $props()
@@ -36,6 +37,8 @@
           banner: p.banner ?? '',
           accent: p.accent ?? '',
           logo_url: p.logo_url ?? '',
+          version_group: p.version_group ?? '',
+          version_label: p.version_label ?? '',
         }
         managed = !!p.managed
       })
@@ -70,6 +73,64 @@
   })
 
   const depth = (s: string) => s.split('/').filter(Boolean).length
+
+  // Reordering: pages move among siblings (same parent slug). Positions of
+  // the whole sibling group are renumbered 10, 20, 30… and saved at once.
+  const parentOf = (s: string) => s.split('/').filter(Boolean).slice(0, -1).join('/')
+  let dragId = $state<number | null>(null)
+  let dropId = $state<number | null>(null)
+  let reordering = $state(false)
+
+  function siblingsOf(p: AdminPage): AdminPage[] {
+    const parent = parentOf(p.slug)
+    return sorted.filter((x) => parentOf(x.slug) === parent)
+  }
+
+  async function saveOrder(group: AdminPage[]) {
+    const items = group.map((p, i) => ({ id: p.id, position: (i + 1) * 10 }))
+    const byId = new Map(items.map((it) => [it.id, it.position]))
+    const before = pages
+    pages = pages.map((p) => (byId.has(p.id) ? { ...p, position: byId.get(p.id)! } : p))
+    reordering = true
+    try {
+      await api.reorder(slug, items)
+      toast.ok('Order saved')
+    } catch (e) {
+      pages = before
+      toast.error(e)
+    } finally {
+      reordering = false
+    }
+  }
+
+  function move(p: AdminPage, delta: number, e: MouseEvent) {
+    e.stopPropagation()
+    const group = siblingsOf(p)
+    const i = group.findIndex((x) => x.id === p.id)
+    const j = i + delta
+    if (j < 0 || j >= group.length) return
+    ;[group[i], group[j]] = [group[j], group[i]]
+    saveOrder(group)
+  }
+
+  function canDrop(target: AdminPage): boolean {
+    const dragged = pages.find((x) => x.id === dragId)
+    return !!dragged && dragged.id !== target.id && parentOf(dragged.slug) === parentOf(target.slug)
+  }
+
+  function drop(target: AdminPage) {
+    const dragged = pages.find((x) => x.id === dragId)
+    dragId = dropId = null
+    if (!dragged || !canDropPair(dragged, target)) return
+    const group = siblingsOf(target)
+    const from = group.findIndex((x) => x.id === dragged.id)
+    const to = group.findIndex((x) => x.id === target.id)
+    group.splice(from, 1)
+    group.splice(to, 0, dragged)
+    saveOrder(group)
+  }
+
+  const canDropPair = (a: AdminPage, b: AdminPage) => a.id !== b.id && parentOf(a.slug) === parentOf(b.slug)
 
   async function save(e: SubmitEvent) {
     e.preventDefault()
@@ -139,6 +200,7 @@
 {#if tab === 'pages'}
   <div class="toolbar">
     <input type="text" placeholder="Filter pages…" bind:value={filter} />
+    <span class="muted hint-order">{reordering ? 'Saving order…' : filter ? '' : 'Drag rows or use ↑/↓ to reorder siblings.'}</span>
   </div>
   <div class="card">
     {#if sorted.length === 0}
@@ -153,7 +215,28 @@
         </thead>
         <tbody>
           {#each sorted as p (p.id)}
-            <tr class="clickable" onclick={() => go(`/projects/${slug}/pages/${p.id}`)}>
+            <tr
+              class="clickable"
+              class:dragging={dragId === p.id}
+              class:drop-target={dropId === p.id}
+              draggable={!filter && !reordering}
+              ondragstart={(e) => {
+                dragId = p.id
+                e.dataTransfer?.setData('text/plain', String(p.id))
+              }}
+              ondragover={(e) => {
+                if (canDrop(p)) {
+                  e.preventDefault()
+                  dropId = p.id
+                }
+              }}
+              ondragleave={() => dropId === p.id && (dropId = null)}
+              ondrop={(e) => {
+                e.preventDefault()
+                drop(p)
+              }}
+              ondragend={() => (dragId = dropId = null)}
+              onclick={() => go(`/projects/${slug}/pages/${p.id}`)}>
               <td>
                 <div class="title" style:padding-left="{Math.max(0, depth(p.slug) - 1) * 1.25}rem">
                   {#if depth(p.slug) > 1}<span class="muted branch">└</span>{/if}
@@ -164,7 +247,15 @@
                 </div>
               </td>
               <td class="muted">{p.section || ''}</td>
-              <td class="muted">{p.position}</td>
+              <td class="muted nowrap">
+                {#if !filter}
+                  <span class="order">
+                    <button class="btn sm ghost" aria-label="Move {p.title} up" disabled={reordering} onclick={(e) => move(p, -1, e)}>↑</button>
+                    <button class="btn sm ghost" aria-label="Move {p.title} down" disabled={reordering} onclick={(e) => move(p, 1, e)}>↓</button>
+                  </span>
+                {/if}
+                {p.position}
+              </td>
               <td>
                 <span class={['badge', p.published ? 'ok' : 'warn']}>{p.published ? 'Published' : 'Draft'}</span>
               </td>
@@ -191,6 +282,8 @@
       <button class="btn primary" type="submit" disabled={busy}>Save changes</button>
     </div>
   </form>
+
+  <GitHubSource project={slug} onsynced={load} />
 
   <div class="card card-pad danger-zone">
     <div>
@@ -283,4 +376,10 @@
     border-radius: 0.5rem;
     font-size: 0.85rem;
   }
+  tr.dragging { opacity: 0.45; }
+  tr.drop-target td { box-shadow: inset 0 2px 0 var(--accent, #6366f1); }
+  tr[draggable='true'] { cursor: grab; }
+  .order { display: inline-flex; gap: 0.1rem; margin-right: 0.35rem; }
+  .order .btn { padding: 0 0.3rem; min-width: 0; }
+  .hint-order { font-size: 0.8rem; margin-left: 0.75rem; }
 </style>

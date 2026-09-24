@@ -31,6 +31,9 @@ func Web() {
 		r.Post("/{project}/views", analytics.View)
 	})
 
+	source := controllers.NewSourceController()
+	facades.Route().Post("/api/hooks/github/{project}", source.Webhook)
+
 	admin := controllers.NewAdminController()
 	facades.Route().Post("/api/auth/login", admin.Login)
 	assets := controllers.NewAssetController()
@@ -49,7 +52,11 @@ func Web() {
 			r.Put("/projects/{project}", admin.UpdateProject)
 			r.Delete("/projects/{project}", admin.DeleteProject)
 			r.Put("/projects/{project}/sync", admin.Sync)
+			r.Get("/projects/{project}/source", source.Show)
+			r.Put("/projects/{project}/source", source.Update)
+			r.Post("/projects/{project}/source/sync", source.Sync)
 			r.Post("/projects/{project}/openapi", controllers.NewOpenAPIController().Import)
+			r.Put("/projects/{project}/order", admin.Order)
 			r.Get("/projects/{project}/pages", admin.Pages)
 			r.Post("/projects/{project}/pages", admin.CreatePage)
 			r.Get("/projects/{project}/pages/{id}", admin.ShowPage)

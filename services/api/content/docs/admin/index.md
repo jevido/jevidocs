@@ -60,6 +60,14 @@ its published state, section and position. The page editor has:
   exactly what the reader will show;
 - write, split and preview modes and an unsaved-changes warning.
 
+### Reordering
+
+Drag a row in the page list onto another page with the same parent to move
+it there, or use the ↑ / ↓ buttons in the **Pos.** column. The whole sibling
+group is renumbered 10, 20, 30… and saved in one request
+(`PUT /api/admin/projects/{project}/order`). Reordering is off while the
+list is filtered.
+
 <Callout type="warn" title="The jevidocs project is managed">
 The `jevidocs` project is synced from the repository on every API start.
 Edits made to it in the admin app are overwritten on the next deploy; change

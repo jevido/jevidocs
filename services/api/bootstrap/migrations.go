@@ -15,7 +15,9 @@ func Migrations() []schema.Migration {
 		&migrations.M20260924000004AddEditURLAndBanner{},
 		&migrations.M20260924000005AddPagesRoot{},
 		&migrations.M20260924000030AddProjectTheme{},
+		&migrations.M20260924000040AddProjectSource{},
 		&migrations.M20260924000010CreateAssetsTable{},
 		&migrations.M20260924000020CreateAnalyticsTables{},
+		&migrations.M20260924000050AddVersionsAndTrgm{},
 	}
 }

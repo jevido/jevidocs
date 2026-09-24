@@ -110,6 +110,9 @@
       {:else if !loading && results.length === 0}
         <p class="empty">No results for “{query}”.</p>
       {:else}
+        {#if results.length > 0 && results.every((r) => r.fuzzy)}
+          <p class="fuzzy-note">No exact matches for “{query}”. Showing similar results.</p>
+        {/if}
         {#each results as r, i (r.slug + '#' + r.hash + i)}
           <a
             href={hrefOf(r)}
@@ -242,4 +245,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes fade { from { opacity: 0; } }
   @keyframes pop { from { opacity: 0; transform: translateX(-50%) scale(0.97); } }
+  .fuzzy-note {
+    margin: 0.25rem 0.5rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--muted-fg);
+  }
 </style>

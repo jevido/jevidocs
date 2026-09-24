@@ -33,19 +33,22 @@ type Link struct {
 }
 
 type ProjectView struct {
-	Slug        string     `json:"slug"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	GithubURL   string     `json:"github_url"`
-	Links       []Link     `json:"links"`
-	Public      bool       `json:"public"`
-	Managed     bool       `json:"managed"`
-	EditURL     string     `json:"edit_url"`
-	Banner      string     `json:"banner"`
-	Accent      string     `json:"accent"`
-	LogoURL     string     `json:"logo_url"`
-	UpdatedAt   string     `json:"updated_at"`
-	Tree        *docs.Tree `json:"tree,omitempty"`
+	Slug         string        `json:"slug"`
+	Name         string        `json:"name"`
+	Description  string        `json:"description"`
+	GithubURL    string        `json:"github_url"`
+	Links        []Link        `json:"links"`
+	Public       bool          `json:"public"`
+	Managed      bool          `json:"managed"`
+	EditURL      string        `json:"edit_url"`
+	Banner       string        `json:"banner"`
+	Accent       string        `json:"accent"`
+	LogoURL      string        `json:"logo_url"`
+	VersionGroup string        `json:"version_group"`
+	VersionLabel string        `json:"version_label"`
+	UpdatedAt    string        `json:"updated_at"`
+	Tree         *docs.Tree    `json:"tree,omitempty"`
+	Versions     []VersionLink `json:"versions,omitempty"`
 }
 
 func ViewProject(p models.Project) ProjectView {
@@ -53,7 +56,7 @@ func ViewProject(p models.Project) ProjectView {
 	_ = json.Unmarshal([]byte(p.Links), &links)
 	v := ProjectView{Slug: p.Slug, Name: p.Name, Description: p.Description, GithubURL: p.GithubURL,
 		Links: links, Public: p.Public, Managed: p.Managed, EditURL: p.EditURL, Banner: p.Banner,
-		Accent: p.Accent, LogoURL: p.LogoURL}
+		Accent: p.Accent, LogoURL: p.LogoURL, VersionGroup: p.VersionGroup, VersionLabel: p.VersionLabel}
 	if p.UpdatedAt != nil {
 		v.UpdatedAt = p.UpdatedAt.ToIso8601String()
 	}
@@ -92,16 +95,18 @@ func FindProject(slug string, all bool) (models.Project, error) {
 var slugRe = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 type ProjectInput struct {
-	Slug        string `json:"slug"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	GithubURL   string `json:"github_url"`
-	Links       []Link `json:"links"`
-	Public      *bool  `json:"public"`
-	EditURL     string `json:"edit_url"`
-	Banner      string `json:"banner"`
-	Accent      string `json:"accent"`
-	LogoURL     string `json:"logo_url"`
+	Slug         string `json:"slug"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	GithubURL    string `json:"github_url"`
+	Links        []Link `json:"links"`
+	Public       *bool  `json:"public"`
+	EditURL      string `json:"edit_url"`
+	Banner       string `json:"banner"`
+	Accent       string `json:"accent"`
+	LogoURL      string `json:"logo_url"`
+	VersionGroup string `json:"version_group"`
+	VersionLabel string `json:"version_label"`
 }
 
 // SaveProject creates (existing == nil) or updates a project.
@@ -139,6 +144,11 @@ func SaveProject(in ProjectInput, existing *models.Project) (models.Project, err
 		return p, err
 	}
 	p.Accent, p.LogoURL = accent, logo
+	group, label, err := validateVersion(in.VersionGroup, in.VersionLabel)
+	if err != nil {
+		return p, err
+	}
+	p.VersionGroup, p.VersionLabel = group, label
 	if in.Links == nil {
 		in.Links = []Link{}
 	}

@@ -13,6 +13,15 @@
 
   const isMac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent)
   const links = $derived(project?.links ?? [])
+  const versions = $derived(project?.versions ?? [])
+
+  // Switch version and stay on the same page; the reader shows its
+  // not-found state if that page does not exist in the other version.
+  function switchVersion(e: Event) {
+    const slug = (e.currentTarget as HTMLSelectElement).value
+    const base = slug === 'jevidocs' ? '/docs' : `/p/${slug}`
+    router.navigate(router.href(router.route.slug, base))
+  }
 </script>
 
 <header class="nav">
@@ -28,6 +37,13 @@
       {/if}
       <span>{project?.name ?? 'Docs'}</span>
     </a>
+    {#if versions.length > 1 && project}
+      <select class="version" aria-label="Documentation version" value={project.slug} onchange={switchVersion}>
+        {#each versions as v (v.slug)}
+          <option value={v.slug}>{v.label}</option>
+        {/each}
+      </select>
+    {/if}
     <a class="home" href="/">jevidocs</a>
 
     <button class="search" type="button" onclick={onsearch}>
@@ -135,4 +151,17 @@
   @media print {
     .nav { display: none; }
   }
+  .version {
+    flex: none;
+    height: 1.75rem;
+    padding: 0 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--fg);
+    font: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .version:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 </style>

@@ -57,6 +57,14 @@
     </div>
     <span class="hint">A preset (neutral, ocean, purple, emerald, ruby) or a CSS colour. Empty uses the default.</span>
   </div>
+  <div class="field wide">
+    <span>Version</span>
+    <div class="row">
+      <input type="text" placeholder="Group, e.g. my-docs" aria-label="Version group" bind:value={value.version_group} />
+      <input type="text" placeholder="Label, e.g. v2" aria-label="Version label" bind:value={value.version_label} />
+    </div>
+    <span class="hint">Projects sharing a group appear in the reader's version switcher, newest label first.</span>
+  </div>
   <label class="field wide">
     Logo URL
     <input type="url" placeholder="https://…/logo.svg" bind:value={value.logo_url} />

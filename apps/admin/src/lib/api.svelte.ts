@@ -110,6 +110,8 @@ export const api = {
   deleteProject: (slug: string) => request<{ ok: boolean }>('DELETE', `/api/admin/projects/${enc(slug)}`),
 
   pages: (project: string) => request<AdminPage[]>('GET', `/api/admin/projects/${enc(project)}/pages`),
+  reorder: (project: string, items: { id: number; position: number }[]) =>
+    request<{ ok: boolean }>('PUT', `/api/admin/projects/${enc(project)}/order`, { items }),
   page: (project: string, id: number) =>
     request<AdminPage>('GET', `/api/admin/projects/${enc(project)}/pages/${id}`),
   createPage: (project: string, p: AdminPageInput) =>
