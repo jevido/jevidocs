@@ -1,0 +1,29 @@
+# Local development stack: `task db:up` / `task down`.
+#
+# Local only. The password is not a secret; production credentials live in
+# Coolify (see infra/deploy/README.md).
+name: jevidocs-dev
+
+services:
+  postgres:
+    image: docker.io/library/postgres:18-alpine
+    environment:
+      POSTGRES_USER: jevidocs
+      POSTGRES_PASSWORD: jevidocs
+      POSTGRES_DB: jevidocs
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C
+    ports:
+      # 47xx scheme, inside the API's block (see CLAUDE.md).
+      - "127.0.0.1:4732:5432"
+    volumes:
+      # Postgres 18 keeps its data under /var/lib/postgresql/18/docker, so the
+      # volume goes on /var/lib/postgresql, not the pre-18 .../data path.
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jevidocs -d jevidocs"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres:

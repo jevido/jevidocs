@@ -1,0 +1,32 @@
+# Patterns are anchored on purpose. A bare name matches at every depth, and in
+# work-old a bare `work` line silently swallowed a generated bindings folder.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+/bin/
+/apps/*/bin/
+/apps/*/build/bin/
+/services/*/bin/
+
+# Tool caches
+/.task/
+.vite/
+*.tsbuildinfo
+
+# Environment. Secrets live in Coolify, never in the repo.
+.env
+.env.*
+!.env.example
+*.local
+
+# Editors and OS
+.DS_Store
+/.idea/
+/.vscode/*
+!/.vscode/extensions.json
+
+# Claude Code personal settings (shared settings and skills are committed)
+/.claude/settings.local.json

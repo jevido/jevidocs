@@ -1,0 +1,25 @@
+# Traefik dynamic config for jevidocs's resources on Coolify.
+#
+# Lives on the server at /data/coolify/proxy/dynamic/jevidocs.yaml (Coolify's
+# proxy watches that directory). Not deployed automatically: copy it there
+# when it changes. See infra/deploy/README.md, "Zero-downtime deploys".
+#
+# During a rolling deploy Coolify removes the old container, and for a moment
+# Traefik can still route a request to its IP. A removed container's IP does
+# not refuse connections, it just never answers, so with the default 30s dial
+# timeout that request hangs. A 1s dial timeout makes it fail fast, and the
+# retry middleware on the router (Coolify custom labels) sends it to the
+# container that is up. Same-host dials take well under a millisecond.
+#
+# No idle connection reuse: Traefik only retries a request it has not sent
+# yet. A pooled keep-alive connection to the old container can be closed by
+# its graceful shutdown just as Traefik writes a request on it; that request
+# is then lost and cannot be retried safely. A fresh connection per request
+# either fails to connect (retried) or is accepted and drained by the
+# server's graceful shutdown. The extra same-host TCP handshake is cheap.
+http:
+  serversTransports:
+    jevidocs-fast-dial:
+      maxIdleConnsPerHost: -1
+      forwardingTimeouts:
+        dialTimeout: 1s

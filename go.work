@@ -1,0 +1,6 @@
+go 1.27
+
+// One module per unit. Add a `use` line when a unit gets its go.mod:
+//   go work use ./services/api
+
+use ./services/api

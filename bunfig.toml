@@ -1,0 +1,4 @@
+[install]
+# Refuse package versions published less than 7 days ago, to reduce exposure to
+# freshly compromised releases. Applies to every workspace.
+minimumReleaseAge = 604800
