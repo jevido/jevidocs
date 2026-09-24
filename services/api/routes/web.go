@@ -38,6 +38,7 @@ func Web() {
 			r.Get("/projects/{project}", admin.Project)
 			r.Put("/projects/{project}", admin.UpdateProject)
 			r.Delete("/projects/{project}", admin.DeleteProject)
+			r.Put("/projects/{project}/sync", admin.Sync)
 			r.Get("/projects/{project}/pages", admin.Pages)
 			r.Post("/projects/{project}/pages", admin.CreatePage)
 			r.Get("/projects/{project}/pages/{id}", admin.ShowPage)

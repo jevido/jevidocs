@@ -98,3 +98,10 @@ func TestNormalizeSlug(t *testing.T) {
 		}
 	}
 }
+
+func TestLongerFenceKeepsInnerFence(t *testing.T) {
+	r, _ := Render("````mdx\n```js\nx\n```\n<Callout>hi</Callout>\n````\n")
+	if strings.Contains(r.HTML, `class="fd-callout"`) {
+		t.Errorf("expanded inside a four-backtick fence: %s", r.HTML)
+	}
+}

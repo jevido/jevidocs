@@ -1,6 +1,11 @@
 package controllers
 
 import (
+	"errors"
+	"path"
+	"strings"
+	"testing/fstest"
+
 	"github.com/goravel/framework/contracts/http"
 
 	"dev.jevido/jevidocs/services/api/app/docs"
@@ -267,4 +272,37 @@ func (r *AdminController) DeleteToken(ctx http.Context) http.Response {
 		return fail(ctx, err)
 	}
 	return ok(ctx, http.Json{"ok": true})
+}
+
+// Sync replaces a project's pages with the posted Markdown files, the way
+// the CLI's `jevidocs push` does. Paths map to slugs like content/ files.
+func (r *AdminController) Sync(ctx http.Context) http.Response {
+	p, err := store.FindProject(ctx.Request().Route("project"), true)
+	if err != nil {
+		return fail(ctx, err)
+	}
+	var in struct {
+		Files map[string]string `json:"files"`
+		Prune bool              `json:"prune"`
+	}
+	if err := ctx.Request().Bind(&in); err != nil {
+		return ctx.Response().Json(http.StatusBadRequest, http.Json{"error": "invalid body"})
+	}
+	if len(in.Files) == 0 {
+		return fail(ctx, store.ValidationError{Msg: "files is empty"})
+	}
+	fsys := fstest.MapFS{}
+	for name, body := range in.Files {
+		name = strings.TrimPrefix(path.Clean("/"+name), "/")
+		fsys[name] = &fstest.MapFile{Data: []byte(body)}
+	}
+	res, err := store.SyncPages(p, fsys, in.Prune)
+	if err != nil {
+		var ve store.ValidationError
+		if errors.As(err, &ve) {
+			return fail(ctx, err)
+		}
+		return ctx.Response().Json(http.StatusUnprocessableEntity, http.Json{"error": err.Error()})
+	}
+	return ok(ctx, res)
 }

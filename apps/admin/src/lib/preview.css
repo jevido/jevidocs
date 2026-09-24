@@ -161,3 +161,4 @@
   .chroma .gd { color: #ffa198; background: #490202; }
   .chroma .gi { color: #56d364; background: #0f5323; }
 }
+.fd-card-slot { display: contents; }

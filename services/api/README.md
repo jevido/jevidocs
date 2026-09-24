@@ -122,6 +122,7 @@ type SearchResult = {
 | POST | `/api/admin/projects` | `{slug, name, description, github_url, links, public}` → `Project` |
 | PUT | `/api/admin/projects/{project}` | same fields → `Project` |
 | DELETE | `/api/admin/projects/{project}` | → `{ok: true}` |
+| PUT | `/api/admin/projects/{project}/sync` | `{files: {"guides/index.md": "..."}, prune}` → `{created, updated, unchanged, deleted}` |
 | GET | `/api/admin/projects/{project}/pages` | → `AdminPage[]` without `body` |
 | POST | `/api/admin/projects/{project}/pages` | `AdminPageInput` → `AdminPage` |
 | GET | `/api/admin/projects/{project}/pages/{id}` | → `AdminPage` |
@@ -166,7 +167,7 @@ The server emits final HTML; clients only style it and attach behaviour.
 - Callout:
   `<div class="fd-callout" data-type="info|warn|error|success|idea"><div class="fd-callout-title">…</div><div class="fd-callout-body">…</div></div>`
 - Cards:
-  `<div class="fd-cards"><a class="fd-card" href="…"><div class="fd-card-title">…</div><div class="fd-card-desc">…</div></a></div>`
+  `<div class="fd-cards"><div class="fd-card-slot"><a class="fd-card" href="…"><div class="fd-card-title">…</div><div class="fd-card-desc">…</div></a></div></div>` (the slot keeps the line a block-level HTML block; style it `display: contents`)
 - Tabs:
   `<div class="fd-tabs"><div class="fd-tabs-list" role="tablist"><button class="fd-tab-trigger" data-tab="npm" data-active>npm</button>…</div><div class="fd-tab" data-value="npm" data-active>…</div>…</div>`
 - Steps: `<div class="fd-steps"><div class="fd-step">…</div></div>`

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"io/fs"
 	"path"
 	"strings"
@@ -37,9 +38,25 @@ func SyncProject(slug, name, description, githubURL string, links []Link, fsys f
 		}
 	}
 
+	_, err = SyncPages(p, fsys, true)
+	return err
+}
+
+// SyncResult counts what SyncPages changed.
+type SyncResult struct {
+	Created   int `json:"created"`
+	Updated   int `json:"updated"`
+	Unchanged int `json:"unchanged"`
+	Deleted   int `json:"deleted"`
+}
+
+// SyncPages makes p's pages match the Markdown files in fsys. With prune,
+// pages that have no file are deleted.
+func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
+	var res SyncResult
 	existing, err := AdminPages(p)
 	if err != nil {
-		return err
+		return res, err
 	}
 	bySlug := map[string]models.Page{}
 	for _, pg := range existing {
@@ -71,25 +88,36 @@ func SyncProject(slug, name, description, githubURL string, links []Link, fsys f
 			_, body := docs.SplitFrontMatter(string(raw))
 			if full.Body == body && full.Title == title && full.Description == fm.Description &&
 				full.Icon == fm.Icon && full.Section == fm.Section && full.Position == fm.Position && full.Published {
+				res.Unchanged++
 				return nil
 			}
 			pub := true
 			in.Published = &pub
-			_, err := SavePage(p, in, &full)
-			return err
+			if _, err := SavePage(p, in, &full); err != nil {
+				return fmt.Errorf("%s: %w", file, err)
+			}
+			res.Updated++
+			return nil
 		}
-		_, err = SavePage(p, in, nil)
-		return err
+		if _, err = SavePage(p, in, nil); err != nil {
+			return fmt.Errorf("%s: %w", file, err)
+		}
+		res.Created++
+		return nil
 	})
 	if err != nil {
-		return err
+		return res, err
+	}
+	if !prune {
+		return res, nil
 	}
 	for s, pg := range bySlug {
 		if !seen[s] {
 			if err := DeletePage(p, pg); err != nil {
-				return err
+				return res, err
 			}
+			res.Deleted++
 		}
 	}
-	return nil
+	return res, nil
 }

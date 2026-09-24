@@ -110,11 +110,13 @@ func expandComponents(src string) string {
 		line := lines[i]
 
 		// Leave fenced code alone, including component examples inside it.
+		// A fence closes only with the same character, at least as long, and
+		// nothing after it (CommonMark), so ``` inside ```` stays code.
 		if m := fenceRe.FindStringSubmatch(line); m != nil {
 			marker := m[1]
 			if fence == "" {
-				fence = marker[:1]
-			} else if strings.HasPrefix(strings.TrimSpace(line), strings.Repeat(fence, 3)) && strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(line), fence)) == "" {
+				fence = marker
+			} else if marker[0] == fence[0] && len(marker) >= len(fence) && strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(line), marker[:1])) == "" {
 				fence = ""
 			}
 			out = append(out, line)

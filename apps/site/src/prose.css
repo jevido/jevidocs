@@ -457,3 +457,4 @@
 @media (max-width: 640px) {
   .prose table { display: block; overflow-x: auto; }
 }
+.prose .fd-card-slot { display: contents; }
