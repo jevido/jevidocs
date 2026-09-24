@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte'
-  import { api, ApiError, type Page, type ProjectWithTree } from '../lib/api'
+  import { api, setLocale, ApiError, type Page, type ProjectWithTree } from '../lib/api'
   import { enhance, onContentClick, onContentKeydown } from '../lib/enhance'
   import Icon from '../lib/Icon.svelte'
   import { interceptLinks, router, scrollToHash } from '../lib/router.svelte'
@@ -47,8 +47,16 @@
   let drawerOpen = $state(false)
   let content = $state<HTMLElement>()
 
+  // Tell the router which leading URL segments are languages of this project.
+  // Only on a real change: a new array would re-derive the route and refetch.
+  $effect(() => {
+    const next = project && project.slug === route.project ? (project.locales ?? []).slice(1) : []
+    if (next.join(',') !== untrack(() => router.locales).join(',')) router.locales = next
+  })
+
   $effect(() => {
     const slug = route.project
+    setLocale(route.locale)
     projectError = null
     if (!slug) {
       project = null
@@ -69,8 +77,11 @@
   })
 
   $effect(() => {
-    const { project: p, slug } = route
+    const { project: p, slug, locale } = route
     if (!p) return
+    // A leading "nl/" may be a language: wait for the project to say so.
+    if (/^[a-z]{2,3}(-[a-z0-9]+)?(\/|$)/.test(slug) && project?.slug !== p) return
+    setLocale(locale)
     const ctrl = new AbortController()
     status = 'loading'
     drawerOpen = false
@@ -229,6 +240,9 @@
         <div class="divider"></div>
         <MobileToc items={toc} />
 
+        {#if page.fallback}
+          <p class="fallback-note" role="note">This page is not translated yet; showing the original.</p>
+        {/if}
         <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
         <div class="prose" bind:this={content} onclick={onContentClick} onkeydown={onContentKeydown}>
           {@html page.html}
@@ -502,4 +516,12 @@
     text-decoration: none;
   }
   .edit:hover { color: var(--fg); }
+  .fallback-note {
+    margin: 0 0 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    color: var(--muted-fg);
+  }
 </style>

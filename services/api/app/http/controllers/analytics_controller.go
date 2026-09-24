@@ -19,7 +19,7 @@ func NewAnalyticsController() *AnalyticsController { return &AnalyticsController
 // text/plain (no CORS preflight), so the body is parsed as JSON whatever the
 // content type says. Ignored views still answer ok.
 func (r *AnalyticsController) View(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}

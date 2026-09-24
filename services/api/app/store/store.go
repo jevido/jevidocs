@@ -33,22 +33,25 @@ type Link struct {
 }
 
 type ProjectView struct {
-	Slug         string        `json:"slug"`
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	GithubURL    string        `json:"github_url"`
-	Links        []Link        `json:"links"`
-	Public       bool          `json:"public"`
-	Managed      bool          `json:"managed"`
-	EditURL      string        `json:"edit_url"`
-	Banner       string        `json:"banner"`
-	Accent       string        `json:"accent"`
-	LogoURL      string        `json:"logo_url"`
-	VersionGroup string        `json:"version_group"`
-	VersionLabel string        `json:"version_label"`
-	UpdatedAt    string        `json:"updated_at"`
-	Tree         *docs.Tree    `json:"tree,omitempty"`
-	Versions     []VersionLink `json:"versions,omitempty"`
+	Slug          string        `json:"slug"`
+	Name          string        `json:"name"`
+	Description   string        `json:"description"`
+	GithubURL     string        `json:"github_url"`
+	Links         []Link        `json:"links"`
+	Public        bool          `json:"public"`
+	Managed       bool          `json:"managed"`
+	EditURL       string        `json:"edit_url"`
+	Banner        string        `json:"banner"`
+	Accent        string        `json:"accent"`
+	LogoURL       string        `json:"logo_url"`
+	VersionGroup  string        `json:"version_group"`
+	VersionLabel  string        `json:"version_label"`
+	Locales       []string      `json:"locales"`
+	DefaultLocale string        `json:"default_locale"`
+	Locale        string        `json:"locale"`
+	UpdatedAt     string        `json:"updated_at"`
+	Tree          *docs.Tree    `json:"tree,omitempty"`
+	Versions      []VersionLink `json:"versions,omitempty"`
 	// Ask is true when Ask AI is enabled on this API.
 	Ask bool `json:"ask"`
 }
@@ -58,7 +61,8 @@ func ViewProject(p models.Project) ProjectView {
 	_ = json.Unmarshal([]byte(p.Links), &links)
 	v := ProjectView{Slug: p.Slug, Name: p.Name, Description: p.Description, GithubURL: p.GithubURL,
 		Links: links, Public: p.Public, Managed: p.Managed, EditURL: p.EditURL, Banner: p.Banner,
-		Accent: p.Accent, LogoURL: p.LogoURL, VersionGroup: p.VersionGroup, VersionLabel: p.VersionLabel}
+		Accent: p.Accent, LogoURL: p.LogoURL, VersionGroup: p.VersionGroup, VersionLabel: p.VersionLabel,
+		Locales: Locales(p), DefaultLocale: DefaultLocale(p), Locale: p.Locale}
 	if p.UpdatedAt != nil {
 		v.UpdatedAt = p.UpdatedAt.ToIso8601String()
 	}
@@ -109,6 +113,9 @@ type ProjectInput struct {
 	LogoURL      string `json:"logo_url"`
 	VersionGroup string `json:"version_group"`
 	VersionLabel string `json:"version_label"`
+	// Locales is a comma list ("en,nl"); nil keeps the current value.
+	Locales       *string `json:"locales"`
+	DefaultLocale string  `json:"default_locale"`
 }
 
 // SaveProject creates (existing == nil) or updates a project.
@@ -151,6 +158,17 @@ func SaveProject(in ProjectInput, existing *models.Project) (models.Project, err
 		return p, err
 	}
 	p.VersionGroup, p.VersionLabel = group, label
+	if in.Locales != nil {
+		p.Locales = normalizeLocales(*in.Locales)
+	}
+	if d := strings.ToLower(strings.TrimSpace(in.DefaultLocale)); d != "" {
+		if !localeRe.MatchString(d) {
+			return p, ValidationError{"default_locale must look like en or pt-br"}
+		}
+		p.DefaultLocale = d
+	} else if p.DefaultLocale == "" {
+		p.DefaultLocale = "en"
+	}
 	if in.Links == nil {
 		in.Links = []Link{}
 	}
@@ -194,14 +212,49 @@ func DeleteProject(p models.Project) error {
 	return err
 }
 
+var pageListColumns = []string{"id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "root", "locale", "created_at", "updated_at"}
+
+// pagesOf lists p's pages in p.Locale. For readers (published) a missing
+// translation falls back to the default-locale page, like fumadocs; for
+// writers only pages of exactly that locale count.
 func pagesOf(p models.Project, published bool) ([]models.Page, error) {
 	var pages []models.Page
-	q := facades.Orm().Query().Select("id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "root", "created_at", "updated_at").
-		Where("project_id", p.ID)
+	q := facades.Orm().Query().Select(pageListColumns...).Where("project_id", p.ID)
 	if published {
 		q = q.Where("published", true)
+		if p.Locale != "" {
+			q = q.Where("locale IN ?", []string{"", p.Locale})
+		} else {
+			q = q.Where("locale", "")
+		}
+	} else {
+		q = q.Where("locale", p.Locale)
 	}
-	err := q.Order("slug asc").Get(&pages)
+	if err := q.Order("slug asc").Get(&pages); err != nil {
+		return nil, err
+	}
+	if !published || p.Locale == "" {
+		return pages, nil
+	}
+	bySlug := map[string]int{}
+	out := pages[:0:0]
+	for _, pg := range pages {
+		if i, ok := bySlug[pg.Slug]; ok {
+			if pg.Locale == p.Locale {
+				out[i] = pg
+			}
+			continue
+		}
+		bySlug[pg.Slug] = len(out)
+		out = append(out, pg)
+	}
+	return out, nil
+}
+
+// AllLocalePages lists every page of every locale, for the admin.
+func AllLocalePages(p models.Project) ([]models.Page, error) {
+	var pages []models.Page
+	err := facades.Orm().Query().Select(pageListColumns...).Where("project_id", p.ID).Order("slug asc").Order("locale asc").Get(&pages)
 	return pages, err
 }
 
@@ -230,15 +283,28 @@ type PageView struct {
 	Previous    *docs.Link     `json:"previous"`
 	Next        *docs.Link     `json:"next"`
 	Markdown    string         `json:"markdown"`
-	URL         string         `json:"url"`
-	EditURL     string         `json:"edit_url"`
-	UpdatedAt   string         `json:"updated_at"`
+	Locale      string         `json:"locale"`
+	// Fallback is set when the page has no translation in the requested
+	// locale and the default-locale page is shown instead.
+	Fallback  bool   `json:"fallback"`
+	URL       string `json:"url"`
+	EditURL   string `json:"edit_url"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 // FindPage loads one published page by slug.
+//
+// In a non-default locale it falls back to the default-locale page.
 func FindPage(p models.Project, slug string) (models.Page, error) {
 	var pg models.Page
-	err := facades.Orm().Query().Where("project_id", p.ID).Where("slug", docs.NormalizeSlug(slug)).Where("published", true).First(&pg)
+	slug = docs.NormalizeSlug(slug)
+	if p.Locale != "" {
+		err := facades.Orm().Query().Where("project_id", p.ID).Where("locale", p.Locale).Where("slug", slug).Where("published", true).First(&pg)
+		if err != nil || pg.ID != 0 {
+			return pg, err
+		}
+	}
+	err := facades.Orm().Query().Where("project_id", p.ID).Where("locale", "").Where("slug", slug).Where("published", true).First(&pg)
 	if err == nil && pg.ID == 0 {
 		err = ErrNotFound
 	}
@@ -256,7 +322,8 @@ func ViewPage(p models.Project, slug string) (PageView, error) {
 		return PageView{}, err
 	}
 	v := PageView{Slug: pg.Slug, Title: pg.Title, Description: pg.Description, Icon: pg.Icon, HTML: pg.HTML,
-		Markdown: pg.Body, URL: PageURL(p, pg.Slug), Toc: []docs.TocItem{}}
+		Markdown: pg.Body, URL: PageURL(p, pg.Slug), Toc: []docs.TocItem{},
+		Locale: p.Locale, Fallback: p.Locale != "" && pg.Locale != p.Locale}
 	_ = json.Unmarshal([]byte(pg.Toc), &v.Toc)
 	v.Breadcrumbs = tree.Breadcrumbs(pg.Slug, pg.Title)
 	v.Previous, v.Next = tree.Neighbours(pg.Slug)
@@ -278,6 +345,9 @@ func PageURL(p models.Project, slug string) string {
 	if p.Slug == SelfProject {
 		base = SiteURL() + "/docs"
 	}
+	if p.Locale != "" {
+		base += "/" + p.Locale
+	}
 	if slug == "" {
 		return base
 	}
@@ -296,6 +366,9 @@ type PageInput struct {
 	// Root makes this folder index page's folder a sidebar tab. Nil keeps
 	// the current value (or the front matter's).
 	Root *bool `json:"root"`
+	// Locale of a new page ('' or the default = default locale); nil means
+	// the project's request locale. Ignored on updates.
+	Locale *string `json:"locale"`
 	// SourcePath is set by file syncs; empty keeps the current value.
 	SourcePath string `json:"-"`
 }
@@ -311,6 +384,10 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 	} else {
 		pg.ProjectID = p.ID
 		pg.Published = true
+		pg.Locale = p.Locale
+		if in.Locale != nil {
+			pg.Locale = ResolveLocale(p, *in.Locale)
+		}
 	}
 	slug := docs.NormalizeSlug(in.Slug)
 	if slug != "" && !pageSlugRe.MatchString(slug) {
@@ -318,7 +395,7 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 	}
 	if existing == nil || slug != pg.Slug {
 		var other models.Page
-		_ = facades.Orm().Query().Where("project_id", p.ID).Where("slug", slug).First(&other)
+		_ = facades.Orm().Query().Where("project_id", p.ID).Where("locale", pg.Locale).Where("slug", slug).First(&other)
 		if other.ID != 0 {
 			return pg, ValidationError{fmt.Sprintf("a page with slug %q already exists", slug)}
 		}

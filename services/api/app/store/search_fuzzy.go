@@ -40,17 +40,17 @@ func fuzzySearch(p models.Project, q string, limit int) ([]SearchResult, error) 
 		  SELECT slug, title AS page_title, '' AS hash, title,
 		         left(plain, 180) AS snippet,
 		         greatest(similarity(lower(title), lower(?)), word_similarity(lower(?), lower(title))) AS score
-		  FROM pages WHERE project_id = ? AND published
+		  FROM pages WHERE project_id = ? AND published AND `+localeFilter("pages")+`
 		  UNION ALL
 		  SELECT pg.slug, pg.title, s->>'id', s->>'title',
 		         left(s->>'text', 180),
 		         greatest(similarity(lower(s->>'title'), lower(?)), word_similarity(lower(?), lower(s->>'title')))
 		  FROM pages pg, jsonb_array_elements(CASE WHEN pg.sections LIKE '[%' THEN pg.sections::jsonb ELSE '[]'::jsonb END) s
-		  WHERE pg.project_id = ? AND pg.published AND coalesce(s->>'id', '') <> ''
+		  WHERE pg.project_id = ? AND pg.published AND `+localeFilter("pg")+` AND coalesce(s->>'id', '') <> ''
 		)
 		SELECT slug, page_title, hash, title, snippet, score FROM candidates
 		WHERE score >= ? ORDER BY score DESC LIMIT ?`,
-		q, q, p.ID, q, q, p.ID, fuzzyThreshold, limit).Scan(&rows)
+		q, q, p.ID, p.Locale, p.Locale, q, q, p.ID, p.Locale, p.Locale, fuzzyThreshold, limit).Scan(&rows)
 	if err != nil {
 		return nil, err
 	}

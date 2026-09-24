@@ -3,16 +3,26 @@
 //   /p/<project>/<slug...>   -> any project
 export const DEFAULT_PROJECT = 'jevidocs'
 
-export type Route = { project: string; base: string; slug: string }
+// locale is '' for a project's default language; base then includes the
+// locale segment (/p/demo/nl) so every href stays in the reader's language.
+export type Route = { project: string; base: string; slug: string; locale: string; root: string }
 
 export function parse(pathname: string): Route {
   const clean = pathname.replace(/\/+$/, '')
   if (clean === '/docs' || clean.startsWith('/docs/')) {
-    return { project: DEFAULT_PROJECT, base: '/docs', slug: decode(clean.slice('/docs/'.length)) }
+    return { project: DEFAULT_PROJECT, base: '/docs', root: '/docs', locale: '', slug: decode(clean.slice('/docs/'.length)) }
   }
   const m = clean.match(/^\/p\/([^/]+)(?:\/(.*))?$/)
-  if (m) return { project: decode(m[1]), base: `/p/${m[1]}`, slug: decode(m[2] ?? '') }
-  return { project: '', base: '/p', slug: '' }
+  if (m) return { project: decode(m[1]), base: `/p/${m[1]}`, root: `/p/${m[1]}`, locale: '', slug: decode(m[2] ?? '') }
+  return { project: '', base: '/p', root: '/p', locale: '', slug: '' }
+}
+
+// withLocale reads a leading locale segment, but only one the project is
+// known to have, so a slug like "api" is never mistaken for a language.
+export function withLocale(r: Route, locales: string[]): Route {
+  const [first, ...rest] = r.slug.split('/')
+  if (!first || !locales.includes(first)) return r
+  return { ...r, locale: first, base: `${r.root}/${first}`, slug: rest.join('/') }
 }
 
 function decode(s: string): string {
@@ -30,7 +40,9 @@ export function isDocsPath(pathname: string): boolean {
 class Router {
   pathname = $state(location.pathname)
   hash = $state(location.hash)
-  route = $derived(parse(this.pathname))
+  // Non-default locales of the current project, set once it has loaded.
+  locales = $state<string[]>([])
+  route = $derived(withLocale(parse(this.pathname), this.locales))
 
   constructor() {
     addEventListener('popstate', () => {

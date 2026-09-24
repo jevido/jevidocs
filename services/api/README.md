@@ -74,6 +74,14 @@ All responses are JSON unless noted. Errors: `{"error": "message"}` with a
 | GET | `/api/projects/{project}/llms.txt` | text/plain index of pages |
 | GET | `/api/projects/{project}/llms-full.txt` | text/plain, every page's Markdown |
 | GET | `/api/projects/{project}/page.md?slug=a/b` | text/markdown of one page |
+
+Public reads (`/api/projects/{project}`, `page`, `page.md`, `search`, `llms.txt`,
+`llms-full.txt`, `sitemap.xml`) take `?locale=nl` for projects with several
+languages; a missing translation falls back to the default-locale page and
+`Page.fallback` is `true`. `Project` includes `locales` (default first),
+`default_locale` and the request's `locale`. Admin page inputs take `locale`
+(create only; `''` = default) and projects take `locales` (comma list) and
+`default_locale`.
 | POST | `/api/projects/{project}/ask` | `{question}` → `{answer, sources: {title, url}[]}`; 404 when Ask AI is off (no `ANTHROPIC_API_KEY`) |
 | POST | `/api/hooks/github/{project}` | GitHub push webhook (HMAC `X-Hub-Signature-256` with the project's source secret) → 202 |
 | GET | `/api/assets/{id}/{name}` | the asset's bytes (immutable cache, `nosniff`, CSP on SVG) |

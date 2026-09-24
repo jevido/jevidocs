@@ -25,6 +25,7 @@
     section: '',
     published: true,
     body: '# Title\n\nStart writing…\n',
+    locale: '',
   }
 
   let form = $state<AdminPageInput>({ ...empty })
@@ -50,6 +51,7 @@
       section: p.section,
       published: p.published,
       body: p.body,
+      locale: p.locale ?? '',
     }
     form = input
     saved = JSON.stringify(input)
@@ -73,6 +75,7 @@
           section: p.section,
           published: p.published,
           body: p.body,
+          locale: p.locale ?? '',
         }
         form = input
         saved = JSON.stringify(input)
@@ -241,6 +244,11 @@
         Position
         <input type="number" bind:value={form.position} />
         <span class="hint">Lower comes first among siblings.</span>
+      </label>
+      <label class="field">
+        Locale
+        <input type="text" placeholder="default" bind:value={form.locale} disabled={!isNew} />
+        <span class="hint">Empty = default language. A translation is a new page with the same slug and a locale.</span>
       </label>
       <label class="field">
         Section

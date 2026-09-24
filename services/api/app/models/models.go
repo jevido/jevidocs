@@ -29,6 +29,13 @@ type Project struct {
 	// VersionLabel names this one ("v2").
 	VersionGroup string `json:"version_group"`
 	VersionLabel string `json:"version_label"`
+	// Locales lists the project's languages ("en,nl"); empty means one
+	// language. Pages of DefaultLocale are stored with locale ''.
+	Locales       string `json:"locales"`
+	DefaultLocale string `json:"default_locale"`
+	// Locale is the language a request reads in ('' = default). Not stored:
+	// controllers set it so every store read follows the request's locale.
+	Locale string `gorm:"-" json:"-"`
 	// GitHub source (see store.SyncFromGitHub). Never in public views.
 	SourceRepo     string           `json:"-"`
 	SourceRef      string           `json:"-"`
@@ -63,6 +70,8 @@ type Page struct {
 	SourcePath string `json:"source_path"`
 	// Root makes a folder index page's folder a sidebar tab.
 	Root bool `json:"root"`
+	// Locale is '' for the project's default locale, else e.g. "nl".
+	Locale string `json:"locale"`
 }
 
 // User is an admin account.

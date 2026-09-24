@@ -10,7 +10,7 @@ import (
 
 // Ask answers a question from a project's docs (POST /api/projects/{project}/ask).
 func (r *DocsController) Ask(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}

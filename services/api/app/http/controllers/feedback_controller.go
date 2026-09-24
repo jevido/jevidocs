@@ -13,7 +13,7 @@ type FeedbackController struct{}
 func NewFeedbackController() *FeedbackController { return &FeedbackController{} }
 
 func (r *FeedbackController) Submit(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}

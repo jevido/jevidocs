@@ -73,10 +73,10 @@ func Search(p models.Project, q string, limit int) ([]SearchResult, error) {
 		SELECT slug, title, sections,
 		  ts_headline('english', plain, query, 'StartSel=`+markOpen+`, StopSel=`+markClose+`, MaxWords=26, MinWords=10, MaxFragments=1') AS snippet
 		FROM pages, to_tsquery('english', ?) AS query
-		WHERE project_id = ? AND published
+		WHERE project_id = ? AND published AND `+localeFilter("pages")+`
 		  AND to_tsvector('english', title || ' ' || description || ' ' || plain) @@ query
 		ORDER BY ts_rank(to_tsvector('english', title || ' ' || description || ' ' || plain), query) DESC
-		LIMIT 10`, tsq, p.ID).Scan(&rows)
+		LIMIT 10`, tsq, p.ID, p.Locale, p.Locale).Scan(&rows)
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +84,8 @@ func Search(p models.Project, q string, limit int) ([]SearchResult, error) {
 		// Words Postgres' stemmer mangles (names, code): plain substring match.
 		err = facades.Orm().Query().Raw(`
 			SELECT slug, title, sections, left(plain, 180) AS snippet FROM pages
-			WHERE project_id = ? AND published AND (title ILIKE ? OR plain ILIKE ?)
-			ORDER BY position LIMIT 10`, p.ID, "%"+likeEscape(q)+"%", "%"+likeEscape(q)+"%").Scan(&rows)
+			WHERE project_id = ? AND published AND `+localeFilter("pages")+` AND (title ILIKE ? OR plain ILIKE ?)
+			ORDER BY position LIMIT 10`, p.ID, p.Locale, p.Locale, "%"+likeEscape(q)+"%", "%"+likeEscape(q)+"%").Scan(&rows)
 		if err != nil {
 			return nil, err
 		}
@@ -191,4 +191,11 @@ func markSnippet(s string, words []string) string {
 // default escape character is a backslash).
 func likeEscape(s string) string {
 	return strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(s)
+}
+
+// localeFilter limits a pages query (table or alias t) to what a reader in
+// one locale sees: that locale's pages, plus default-locale pages without a
+// translation. It takes two arguments, both the locale (” = default).
+func localeFilter(t string) string {
+	return "(" + t + ".locale = ? OR (" + t + ".locale = '' AND " + t + ".slug NOT IN (SELECT tr.slug FROM pages tr WHERE tr.project_id = " + t + ".project_id AND tr.locale = ?)))"
 }

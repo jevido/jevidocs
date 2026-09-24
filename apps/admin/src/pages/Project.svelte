@@ -39,6 +39,8 @@
           logo_url: p.logo_url ?? '',
           version_group: p.version_group ?? '',
           version_label: p.version_label ?? '',
+          locales: (p.locales ?? []).length > 1 ? (p.locales ?? []).join(',') : '',
+          default_locale: p.default_locale ?? 'en',
         }
         managed = !!p.managed
       })
@@ -242,7 +244,7 @@
                   {#if depth(p.slug) > 1}<span class="muted branch">└</span>{/if}
                   <div>
                     <a href={href(`/projects/${slug}/pages/${p.id}`)}>{p.title || 'Untitled'}</a>
-                    <div class="muted"><code>/{p.slug}</code></div>
+                    <div class="muted"><code>/{p.slug}</code>{#if p.locale}&nbsp;<span class="badge">{p.locale}</span>{/if}</div>
                   </div>
                 </div>
               </td>

@@ -128,6 +128,7 @@ type adminPage struct {
 	Section     string `json:"section"`
 	Published   bool   `json:"published"`
 	Root        bool   `json:"root"`
+	Locale      string `json:"locale"`
 	Body        string `json:"body,omitempty"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
@@ -135,7 +136,7 @@ type adminPage struct {
 
 func viewAdminPage(p models.Project, pg models.Page, withBody bool) adminPage {
 	v := adminPage{ID: pg.ID, Project: p.Slug, Slug: pg.Slug, Title: pg.Title, Description: pg.Description,
-		Icon: pg.Icon, Position: pg.Position, Section: pg.Section, Published: pg.Published, Root: pg.Root}
+		Icon: pg.Icon, Position: pg.Position, Section: pg.Section, Published: pg.Published, Root: pg.Root, Locale: pg.Locale}
 	if withBody {
 		v.Body = pg.Body
 	}
@@ -153,7 +154,7 @@ func (r *AdminController) Pages(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
-	pages, err := store.AdminPages(p)
+	pages, err := store.AllLocalePages(p)
 	if err != nil {
 		return fail(ctx, err)
 	}

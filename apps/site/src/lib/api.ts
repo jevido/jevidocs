@@ -14,6 +14,9 @@ export type Project = {
   accent?: string
   logo_url?: string
   version_label?: string
+  locales?: string[]
+  default_locale?: string
+  locale?: string
   versions?: VersionLink[]
   updated_at: string
 }
@@ -51,6 +54,8 @@ export type Page = {
   previous: { title: string; slug: string } | null
   next: { title: string; slug: string } | null
   markdown: string
+  locale?: string
+  fallback?: boolean
   edit_url?: string
   updated_at: string
 }
@@ -91,6 +96,13 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
 
 const p = (project: string) => `/api/projects/${encodeURIComponent(project)}`
 
+// The reader's language ('' = project default), added to reads as ?locale=.
+let currentLocale = ''
+export function setLocale(locale: string) {
+  currentLocale = locale
+}
+const loc = (sep: '?' | '&') => (currentLocale ? `${sep}locale=${encodeURIComponent(currentLocale)}` : '')
+
 export type AskAnswer = { answer: string; sources: { title: string; url: string }[] }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
@@ -107,12 +119,13 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 export const api = {
   ask: (project: string, question: string) => post<AskAnswer>(`${p(project)}/ask`, { question }),
   projects: (signal?: AbortSignal) => get<Project[]>('/api/projects', signal),
-  project: (project: string, signal?: AbortSignal) => get<ProjectWithTree>(p(project), signal),
+  project: (project: string, signal?: AbortSignal) => get<ProjectWithTree>(p(project) + loc('?'), signal),
   page: (project: string, slug: string, signal?: AbortSignal) =>
-    get<Page>(`${p(project)}/page?slug=${encodeURIComponent(slug)}`, signal),
+    get<Page>(`${p(project)}/page?slug=${encodeURIComponent(slug)}${loc('&')}`, signal),
   search: (project: string, q: string, signal?: AbortSignal) =>
-    get<SearchResult[] | null>(`${p(project)}/search?q=${encodeURIComponent(q)}`, signal),
-  markdownUrl: (project: string, slug: string) => `${API_URL}${p(project)}/page.md?slug=${encodeURIComponent(slug)}`,
+    get<SearchResult[] | null>(`${p(project)}/search?q=${encodeURIComponent(q)}${loc('&')}`, signal),
+  markdownUrl: (project: string, slug: string) =>
+    `${API_URL}${p(project)}/page.md?slug=${encodeURIComponent(slug)}${loc('&')}`,
   // One page view, fire and forget. text/plain avoids a CORS preflight; the
   // API parses the body as JSON regardless.
   trackView: (project: string, slug: string) => {
@@ -126,6 +139,6 @@ export const api = {
       // analytics must never break reading
     }
   },
-  llmsUrl: (project: string) => `${API_URL}${p(project)}/llms.txt`,
-  llmsFullUrl: (project: string) => `${API_URL}${p(project)}/llms-full.txt`,
+  llmsUrl: (project: string) => `${API_URL}${p(project)}/llms.txt${loc('?')}`,
+  llmsFullUrl: (project: string) => `${API_URL}${p(project)}/llms-full.txt${loc('?')}`,
 }

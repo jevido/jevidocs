@@ -21,7 +21,7 @@ func (r *DocsController) Projects(ctx http.Context) http.Response {
 }
 
 func (r *DocsController) Project(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}
@@ -39,7 +39,7 @@ func (r *DocsController) Project(ctx http.Context) http.Response {
 }
 
 func (r *DocsController) Page(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}
@@ -51,7 +51,7 @@ func (r *DocsController) Page(ctx http.Context) http.Response {
 }
 
 func (r *DocsController) Search(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}
@@ -71,7 +71,7 @@ func text(ctx http.Context, contentType, body string) http.Response {
 }
 
 func (r *DocsController) LLMs(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}
@@ -83,7 +83,7 @@ func (r *DocsController) LLMs(ctx http.Context) http.Response {
 }
 
 func (r *DocsController) LLMsFull(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}
@@ -95,7 +95,7 @@ func (r *DocsController) LLMsFull(ctx http.Context) http.Response {
 }
 
 func (r *DocsController) PageMarkdown(ctx http.Context) http.Response {
-	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	p, err := publicProject(ctx)
 	if err != nil {
 		return fail(ctx, err)
 	}

@@ -58,6 +58,14 @@
     <span class="hint">A preset (neutral, ocean, purple, emerald, ruby) or a CSS colour. Empty uses the default.</span>
   </div>
   <div class="field wide">
+    <span>Languages</span>
+    <div class="row">
+      <input type="text" placeholder="en,nl,de (empty = one language)" aria-label="Locales" bind:value={value.locales} />
+      <input type="text" placeholder="Default, e.g. en" aria-label="Default locale" bind:value={value.default_locale} />
+    </div>
+    <span class="hint">Translations are pages with the same slug in another locale; missing ones fall back to the default.</span>
+  </div>
+  <div class="field wide">
     <span>Version</span>
     <div class="row">
       <input type="text" placeholder="Group, e.g. my-docs" aria-label="Version group" bind:value={value.version_group} />

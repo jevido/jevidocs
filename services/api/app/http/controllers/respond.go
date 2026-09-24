@@ -7,6 +7,7 @@ import (
 	"github.com/goravel/framework/contracts/http"
 
 	"dev.jevido/jevidocs/services/api/app/facades"
+	"dev.jevido/jevidocs/services/api/app/models"
 	"dev.jevido/jevidocs/services/api/app/store"
 )
 
@@ -34,4 +35,14 @@ func ok(ctx http.Context, v any) http.Response {
 func routeID(ctx http.Context, key string) uint {
 	n, _ := strconv.ParseUint(ctx.Request().Route(key), 10, 64)
 	return uint(n)
+}
+
+// publicProject loads the route's public project reading in the request's
+// ?locale= (unknown or default locales read the default).
+func publicProject(ctx http.Context) (models.Project, error) {
+	p, err := store.FindProject(ctx.Request().Route("project"), false)
+	if err != nil {
+		return p, err
+	}
+	return store.WithLocale(p, ctx.Request().Query("locale", "")), nil
 }

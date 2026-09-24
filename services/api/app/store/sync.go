@@ -75,13 +75,15 @@ func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
 
 func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (SyncResult, error) {
 	var res SyncResult
-	existing, err := AdminPages(p)
+	// Every locale at once: guide.nl.md is the nl page of slug "guide".
+	existing, err := AllLocalePages(p)
 	if err != nil {
 		return res, err
 	}
+	key := func(locale, slug string) string { return locale + "\x00" + slug }
 	bySlug := map[string]models.Page{}
 	for _, pg := range existing {
-		bySlug[pg.Slug] = pg
+		bySlug[key(pg.Locale, pg.Slug)] = pg
 	}
 	seen := map[string]bool{}
 
@@ -93,15 +95,16 @@ func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (Syn
 		if err != nil {
 			return err
 		}
-		pageSlug := docs.NormalizeSlug(file)
-		seen[pageSlug] = true
+		stripped, locale := splitLocaleFile(p, file)
+		pageSlug := docs.NormalizeSlug(stripped)
+		seen[key(locale, pageSlug)] = true
 		fm, _ := docs.SplitFrontMatter(string(raw))
 		title := fm.Title
 		if title == "" {
 			title = strings.TrimSuffix(path.Base(file), path.Ext(file))
 		}
-		in := PageInput{Slug: pageSlug, Title: title, Body: string(raw), SourcePath: file}
-		if cur, ok := bySlug[pageSlug]; ok {
+		in := PageInput{Slug: pageSlug, Title: title, Body: string(raw), SourcePath: file, Locale: &locale}
+		if cur, ok := bySlug[key(locale, pageSlug)]; ok {
 			var full models.Page
 			if err := facades.Orm().Query().Where("id", cur.ID).First(&full); err != nil {
 				return err
@@ -133,11 +136,12 @@ func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (Syn
 	if !prune {
 		return res, nil
 	}
-	for s, pg := range bySlug {
+	for k, pg := range bySlug {
+		s := pg.Slug
 		if keepPrefix != "" && (s == keepPrefix || strings.HasPrefix(s, keepPrefix+"/")) {
 			continue
 		}
-		if !seen[s] {
+		if !seen[k] {
 			if err := DeletePage(p, pg); err != nil {
 				return res, err
 			}

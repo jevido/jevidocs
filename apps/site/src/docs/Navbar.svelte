@@ -14,6 +14,14 @@
   const isMac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent)
   const links = $derived(project?.links ?? [])
   const versions = $derived(project?.versions ?? [])
+  const locales = $derived(project?.locales ?? [])
+
+  // Switch language on the same page: the default locale has no URL segment.
+  function switchLocale(e: Event) {
+    const l = (e.currentTarget as HTMLSelectElement).value
+    const base = l === locales[0] ? router.route.root : `${router.route.root}/${l}`
+    router.navigate(router.href(router.route.slug, base))
+  }
 
   // Switch version and stay on the same page; the reader shows its
   // not-found state if that page does not exist in the other version.
@@ -41,6 +49,17 @@
       <select class="version" aria-label="Documentation version" value={project.slug} onchange={switchVersion}>
         {#each versions as v (v.slug)}
           <option value={v.slug}>{v.label}</option>
+        {/each}
+      </select>
+    {/if}
+    {#if locales.length > 1}
+      <select
+        class="version locale"
+        aria-label="Language"
+        value={router.route.locale || locales[0]}
+        onchange={switchLocale}>
+        {#each locales as l (l)}
+          <option value={l}>{l.toUpperCase()}</option>
         {/each}
       </select>
     {/if}

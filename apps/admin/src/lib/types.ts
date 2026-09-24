@@ -15,11 +15,16 @@ export type Project = {
   logo_url: string
   version_group?: string
   version_label?: string
+  locales?: string[]
+  default_locale?: string
   managed?: boolean
   updated_at: string
 }
 
-export type ProjectInput = Omit<Project, 'updated_at' | 'managed'>
+export type ProjectInput = Omit<Project, 'updated_at' | 'managed' | 'locales'> & {
+  // Comma list ("en,nl"); empty for a single-language project.
+  locales?: string
+}
 
 export type AdminPageInput = {
   slug: string
@@ -30,6 +35,8 @@ export type AdminPageInput = {
   section: string
   published: boolean
   body: string
+  // '' = the project's default language.
+  locale?: string
 }
 
 export type AdminPage = AdminPageInput & {

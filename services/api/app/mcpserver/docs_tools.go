@@ -28,6 +28,7 @@ type treeOut struct {
 
 type readPageArgs struct {
 	Project string `json:"project" jsonschema:"project slug"`
+	Locale  string `json:"locale,omitempty" jsonschema:"language, e.g. nl; default language when omitted"`
 	Slug    string `json:"slug" jsonschema:"page slug, e.g. guides/install; empty for the index page"`
 }
 
@@ -40,6 +41,7 @@ type readPageOut struct {
 
 type searchArgs struct {
 	Project string `json:"project" jsonschema:"project slug"`
+	Locale  string `json:"locale,omitempty" jsonschema:"language, e.g. nl; default language when omitted"`
 	Query   string `json:"query" jsonschema:"search words"`
 }
 
@@ -115,6 +117,7 @@ func registerDocsTools(server *mcp.Server) {
 		if err != nil {
 			return nil, readPageOut{}, err
 		}
+		p = store.WithLocale(p, in.Locale)
 		pg, err := store.FindPage(p, in.Slug)
 		if err != nil {
 			return nil, readPageOut{}, err
@@ -129,6 +132,7 @@ func registerDocsTools(server *mcp.Server) {
 		if err != nil {
 			return nil, searchOut{}, err
 		}
+		p = store.WithLocale(p, in.Locale)
 		res, err := store.Search(p, in.Query, 15)
 		return nil, searchOut{Results: res}, err
 	})
