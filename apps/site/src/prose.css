@@ -521,12 +521,17 @@
   overflow-x: auto;
   text-align: center;
 }
-.prose .fd-mermaid svg { max-width: 100%; height: auto; }
+.prose .fd-mermaid { overflow: hidden; }
+.prose .fd-mermaid-svg { overflow-x: auto; }
+.prose .fd-mermaid svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 .prose .fd-mermaid-src { text-align: left; margin: 0; white-space: pre-wrap; font-size: 0.8rem; opacity: 0.8; }
-.prose .fd-mermaid[data-rendered] .fd-mermaid-src { display: none; }
+.prose .fd-mermaid[data-rendered] .fd-mermaid-src,
+.prose .fd-mermaid[data-rendered] .fd-codeblock { display: none; }
 
 /* ---- images ------------------------------------------------------------- */
 .prose img { max-width: 100%; height: auto; border-radius: 0.5rem; cursor: zoom-in; }
+/* SVGs without an intrinsic size (logos, icons) would stretch to the column. */
+.prose img[src$='.svg'] { max-width: min(100%, 12rem); }
 .fd-zoom {
   position: fixed;
   inset: 0;
