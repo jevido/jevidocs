@@ -115,7 +115,7 @@
     {#if !loading}<div class="empty">No tokens yet.</div>{/if}
   {:else}
     <table class="list">
-      <thead><tr><th>Name</th><th>Created</th><th>Last used</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Created</th><th>Last used</th><th><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>
         {#each tokens as t (t.id)}
           <tr>

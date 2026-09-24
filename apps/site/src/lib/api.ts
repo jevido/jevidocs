@@ -9,6 +9,7 @@ export type Project = {
   github_url: string
   links: Link[] | null
   public: boolean
+  ask?: boolean
   banner?: string
   accent?: string
   logo_url?: string
@@ -90,7 +91,21 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
 
 const p = (project: string) => `/api/projects/${encodeURIComponent(project)}`
 
+export type AskAnswer = { answer: string; sources: { title: string; url: string }[] }
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(API_URL + path, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? res.statusText)
+  return data as T
+}
+
 export const api = {
+  ask: (project: string, question: string) => post<AskAnswer>(`${p(project)}/ask`, { question }),
   projects: (signal?: AbortSignal) => get<Project[]>('/api/projects', signal),
   project: (project: string, signal?: AbortSignal) => get<ProjectWithTree>(p(project), signal),
   page: (project: string, slug: string, signal?: AbortSignal) =>

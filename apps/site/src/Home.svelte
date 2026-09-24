@@ -33,6 +33,7 @@
 </script>
 
 <div class="page">
+  <a class="skip-link" href="#content">Skip to content</a>
   <header class="nav">
     <div class="inner">
       <a class="brand" href="/"><Logo /> jevidocs</a>
@@ -49,7 +50,7 @@
     </div>
   </header>
 
-  <main>
+  <main id="content" tabindex="-1">
     <section class="hero">
       <div class="glow" aria-hidden="true"></div>
       <a class="badge" href="/docs/mcp">

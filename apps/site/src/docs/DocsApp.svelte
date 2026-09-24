@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte'
   import { api, ApiError, type Page, type ProjectWithTree } from '../lib/api'
-  import { enhance, onContentClick } from '../lib/enhance'
+  import { enhance, onContentClick, onContentKeydown } from '../lib/enhance'
   import Icon from '../lib/Icon.svelte'
   import { interceptLinks, router, scrollToHash } from '../lib/router.svelte'
   import Navbar from './Navbar.svelte'
@@ -123,13 +123,14 @@
   const toc = $derived(page?.toc ?? [])
 </script>
 
+<a class="skip-link" href="#content">Skip to content</a>
 {#if project?.banner}
   <div class="banner" role="note">{project.banner}</div>
 {/if}
 <Navbar {project} onsearch={() => (searchOpen = true)} onmenu={() => (drawerOpen = true)} />
 
 {#if route.project}
-  <SearchDialog bind:open={searchOpen} project={route.project} />
+  <SearchDialog bind:open={searchOpen} project={route.project} ask={project?.ask ?? false} />
 {/if}
 
 {#if status === 'loading' && page}
@@ -177,7 +178,7 @@
     {/if}
   </aside>
 
-  <main class="main">
+  <main class="main" id="content" tabindex="-1">
     {#if projectError}
       <div class="state">
         <p class="code">404</p>
@@ -229,7 +230,7 @@
         <MobileToc items={toc} />
 
         <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-        <div class="prose" bind:this={content} onclick={onContentClick}>
+        <div class="prose" bind:this={content} onclick={onContentClick} onkeydown={onContentKeydown}>
           {@html page.html}
         </div>
 

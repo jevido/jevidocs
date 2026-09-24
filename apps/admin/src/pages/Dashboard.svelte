@@ -42,7 +42,7 @@
     <div class="empty">No projects yet. <a href={href('/projects')}>Create one</a>.</div>
   {:else}
     <table class="list">
-      <thead><tr><th>Name</th><th>Visibility</th><th>Updated</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Visibility</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>
         {#each projects as p (p.slug)}
           <tr>

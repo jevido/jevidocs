@@ -53,15 +53,42 @@ export function enhance(root: HTMLElement) {
   renderMermaid(root)
   for (const tabs of root.querySelectorAll<HTMLElement>('.fd-tabs')) {
     const triggers = tabs.querySelectorAll<HTMLElement>(':scope > .fd-tabs-list > .fd-tab-trigger')
-    if (triggers.length && ![...triggers].some((t) => t.hasAttribute('data-active'))) {
-      select(tabs, triggers[0].dataset.tab ?? '')
-    }
-    triggers.forEach((t) => {
+    const panels = tabs.querySelectorAll<HTMLElement>(':scope > .fd-tab')
+    const id = `fd-tabs-${++tabsSeq}`
+    // ARIA tabs: each trigger controls the panel with the same value.
+    triggers.forEach((t, i) => {
       t.setAttribute('role', 'tab')
       t.setAttribute('type', 'button')
-      t.setAttribute('aria-selected', String(t.hasAttribute('data-active')))
+      t.id = `${id}-t${i}`
+      const panel = [...panels].find((p) => p.dataset.value === t.dataset.tab)
+      if (panel) {
+        panel.id = `${id}-p${i}`
+        panel.setAttribute('role', 'tabpanel')
+        panel.setAttribute('aria-labelledby', t.id)
+        panel.tabIndex = 0
+        t.setAttribute('aria-controls', panel.id)
+      }
     })
+    const active = [...triggers].find((t) => t.hasAttribute('data-active')) ?? triggers[0]
+    if (active) select(tabs, active.dataset.tab ?? '')
   }
+}
+
+let tabsSeq = 0
+
+// Arrow keys, Home and End move between tabs (WAI-ARIA tabs pattern).
+export function onContentKeydown(e: KeyboardEvent) {
+  const trigger = (e.target as Element | null)?.closest<HTMLElement>('.fd-tab-trigger')
+  const tabs = trigger?.closest<HTMLElement>('.fd-tabs')
+  if (!trigger || !tabs) return
+  const all = [...tabs.querySelectorAll<HTMLElement>(':scope > .fd-tabs-list > .fd-tab-trigger')]
+  const i = all.indexOf(trigger)
+  const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: all.length - 1 }[e.key]
+  if (next === undefined) return
+  e.preventDefault()
+  const to = all[(next + all.length) % all.length]
+  select(tabs, to.dataset.tab ?? '')
+  to.focus()
 }
 
 function select(tabs: HTMLElement, value: string) {
@@ -69,6 +96,7 @@ function select(tabs: HTMLElement, value: string) {
     const on = t.dataset.tab === value
     t.toggleAttribute('data-active', on)
     t.setAttribute('aria-selected', String(on))
+    t.tabIndex = on ? 0 : -1
   }
   for (const p of tabs.querySelectorAll<HTMLElement>(':scope > .fd-tab')) {
     p.toggleAttribute('data-active', p.dataset.value === value)

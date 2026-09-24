@@ -211,7 +211,7 @@
     {:else}
       <table class="list">
         <thead>
-          <tr><th>Page</th><th>Section</th><th>Pos.</th><th>Status</th><th>Updated</th><th></th></tr>
+          <tr><th>Page</th><th>Section</th><th>Pos.</th><th>Status</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr>
         </thead>
         <tbody>
           {#each sorted as p (p.id)}

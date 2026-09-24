@@ -1,9 +1,38 @@
 <script lang="ts">
-  import { api, type SearchResult } from '../lib/api'
+  import { api, type AskAnswer, type SearchResult } from '../lib/api'
+  import { miniMarkdown } from '../lib/mini-md'
   import Icon from '../lib/Icon.svelte'
   import { router } from '../lib/router.svelte'
 
-  let { open = $bindable(false), project }: { open: boolean; project: string } = $props()
+  let {
+    open = $bindable(false),
+    project,
+    ask = false,
+  }: { open: boolean; project: string; ask?: boolean } = $props()
+
+  // Ask AI (only when the API has a model configured).
+  let answer = $state<AskAnswer | null>(null)
+  let asking = $state(false)
+  let askError = $state('')
+  async function askAI() {
+    const q = query.trim()
+    if (!q || asking) return
+    asking = true
+    askError = ''
+    answer = null
+    try {
+      answer = await api.ask(project, q)
+    } catch (e) {
+      askError = e instanceof Error ? e.message : String(e)
+    } finally {
+      asking = false
+    }
+  }
+  $effect(() => {
+    void query
+    answer = null
+    askError = ''
+  })
 
   let query = $state('')
   let results = $state<SearchResult[]>([])
@@ -13,9 +42,32 @@
   let input = $state<HTMLInputElement>()
   let list = $state<HTMLElement>()
 
+  // Keep Tab inside the dialog while it is open.
+  function trapFocus(e: KeyboardEvent) {
+    if (e.key !== 'Tab') return
+    const box = e.currentTarget as HTMLElement
+    const items = [...box.querySelectorAll<HTMLElement>('input, button, a[href], [tabindex]:not([tabindex="-1"])')]
+    if (!items.length) return
+    const first = items[0]
+    const last = items[items.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+
+  // Focus the input on open and give focus back to the opener on close.
+  let returnTo: HTMLElement | null = null
   $effect(() => {
     if (open) {
+      returnTo = document.activeElement as HTMLElement | null
       queueMicrotask(() => input?.select())
+    } else if (returnTo) {
+      returnTo.focus?.()
+      returnTo = null
     }
   })
 
@@ -89,7 +141,7 @@
 
 {#if open}
   <div class="overlay" role="presentation" onclick={() => (open = false)}></div>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Search documentation">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label="Search documentation" tabindex="-1" onkeydown={trapFocus}>
     <div class="field">
       <Icon name="search" size={18} />
       <input
@@ -103,6 +155,23 @@
       <kbd>Esc</kbd>
     </div>
     <div class="results" bind:this={list}>
+      {#if ask && query.trim()}
+        <button type="button" class="ask-row" onclick={askAI} disabled={asking}>
+          <span class="kind"><Icon name="bot" size={16} /></span>
+          <span class="body"><span class="title">{asking ? 'Thinking…' : `Ask AI: “${query.trim()}”`}</span></span>
+        </button>
+        {#if askError}<p class="empty">{askError}</p>{/if}
+        {#if answer}
+          <div class="answer" aria-live="polite">
+            {@html miniMarkdown(answer.answer)}
+            {#if answer.sources.length}
+              <p class="sources">Sources:
+                {#each answer.sources as s, i (s.url + i)}<a href={s.url} onclick={() => (open = false)}>{s.title}</a>{/each}
+              </p>
+            {/if}
+          </div>
+        {/if}
+      {/if}
       {#if !query.trim()}
         <p class="empty">Type to search pages and headings.</p>
       {:else if failed}
@@ -250,4 +319,33 @@
     font-size: 0.8rem;
     color: var(--muted-fg);
   }
+  .ask-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.6rem;
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    margin-bottom: 0.25rem;
+  }
+  .ask-row:hover:not(:disabled) { background: var(--accent); }
+  .answer {
+    margin: 0.25rem 0 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.6rem;
+    background: var(--card);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .answer :global(p) { margin: 0 0 0.6rem; }
+  .answer :global(pre) { overflow-x: auto; padding: 0.6rem; border-radius: 0.4rem; background: var(--muted); font-size: 0.8rem; }
+  .answer :global(code) { font-family: var(--font-mono); font-size: 0.85em; }
+  .answer :global(a) { color: var(--brand); }
+  .sources { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem; color: var(--muted-fg); margin: 0; }
 </style>

@@ -21,7 +21,7 @@
   }
 </script>
 
-<div class="wrap">
+<main class="wrap">
   <form class="card" onsubmit={submit}>
     <div class="head">
       <img src="/favicon.svg" alt="" width="36" height="36" />
@@ -39,7 +39,7 @@
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     <button class="btn primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
   </form>
-</div>
+</main>
 
 <style>
   .wrap {

@@ -91,7 +91,7 @@
     {#if !loading}<div class="empty">No users.</div>{/if}
   {:else}
     <table class="list">
-      <thead><tr><th>Name</th><th>Email</th><th>Added</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Email</th><th>Added</th><th><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>
         {#each users as u (u.id)}
           <tr>

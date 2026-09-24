@@ -24,8 +24,9 @@
   })
 </script>
 
+<a class="skip-link" href="#content">Skip to content</a>
 <header class="bar">
-  <a class="brand" href="/"><Logo /></a>
+  <a class="brand" href="/" aria-label="jevidocs home"><Logo /></a>
   <nav>
     <a href="/docs">Docs</a>
     <a href="https://admin.jevidocs.jevido.app">Admin</a>
@@ -33,7 +34,7 @@
   </nav>
 </header>
 
-<main>
+<main id="content" tabindex="-1">
   <h1>Projects</h1>
   <p class="lead">Documentation sites hosted on jevidocs.</p>
 
