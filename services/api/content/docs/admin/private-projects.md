@@ -14,6 +14,7 @@ There are three ways in.
 | --- | --- |
 | Admins | Always. Sign in on the docs site (or send an admin token). |
 | Members | Editors and viewers you add under **Access → Members**. They sign in on the docs site. |
+| Email domains | Every user whose email is at a domain listed under **Access → Email domains**. They sign in on the docs site. |
 | Share links | Anyone with a link from **Access → Share links**. No account needed. |
 
 ## Signing in on the docs site
@@ -27,6 +28,18 @@ read, marked **Private**, including in the [project directory](/p).
 Add users (created on the admin's Users page) as members of a private
 project. Admins do not need to be members. Removing a member takes access
 away on their next request.
+
+## Email domains
+
+List domains such as `example.com` and every account whose email address
+ends in `@example.com` can read the project, without adding people one by
+one. New colleagues get access as soon as their account exists; changing
+someone's email to another domain takes it away.
+
+- The match is exact and case-insensitive: `example.com` does not include
+  `mail.example.com`; list that separately if you need it.
+- Accounts are still created by an admin on the Users page (there is no
+  self sign-up), so a domain only admits people you have given an account.
 
 ## Share links
 

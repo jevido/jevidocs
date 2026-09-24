@@ -15,6 +15,7 @@ func TestRequiredRole(t *testing.T) {
 		{"PUT", "/api/auth/password", RoleViewer},
 		{"POST", "/api/admin/projects", RoleAdmin},
 		{"POST", "/api/admin/projects/demo/shares", RoleAdmin},
+		{"PUT", "/api/admin/projects/demo/domains", RoleAdmin},
 		{"DELETE", "/api/admin/projects/demo/members/3", RoleAdmin},
 		{"GET", "/api/admin/projects/demo/members", RoleViewer},
 		{"PUT", "/api/admin/projects/demo", RoleAdmin},

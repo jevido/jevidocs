@@ -196,13 +196,16 @@ Public read endpoints and MCP read tools also accept `Authorization: Bearer
 by admins, by its members, and with a valid share link; for everyone else
 it answers 404. `GET /api/projects` lists public projects plus the private
 ones the reader may read; project views carry `access` (`public`, `admin`,
-`member`, `share`).
+`member`, `domain`, `share`). Users whose email is at one of a project's
+allowed domains read it like members.
 
 | Method | Path | Body → Returns |
 | ------ | ---- | -------------- |
 | GET | `/api/admin/projects/{project}/members` | → `{user_id, name, email, role}[]` |
 | POST | `/api/admin/projects/{project}/members` | `{user_id}` → `{ok}` (admin) |
 | DELETE | `/api/admin/projects/{project}/members/{user_id}` | → `{ok}` (admin) |
+| GET | `/api/admin/projects/{project}/domains` | → `{domains: string[]}` |
+| PUT | `/api/admin/projects/{project}/domains` | `{domains: ["example.com"]}` → `{domains}` (admin; replaces the list) |
 | GET | `/api/admin/projects/{project}/shares` | → `{id, name, expires_at, last_used_at, created_at}[]` |
 | POST | `/api/admin/projects/{project}/shares` | `{name, expires_days}` (0 = never) → `{id, name, token, url}` once (admin) |
 | DELETE | `/api/admin/projects/{project}/shares/{id}` | → `{ok}` (admin) |

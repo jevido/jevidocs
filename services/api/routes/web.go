@@ -67,6 +67,8 @@ func Web() {
 			r.Get("/projects/{project}/members", access.Members)
 			r.Post("/projects/{project}/members", access.AddMember)
 			r.Delete("/projects/{project}/members/{user}", access.RemoveMember)
+			r.Get("/projects/{project}/domains", access.Domains)
+			r.Put("/projects/{project}/domains", access.SetDomains)
 			r.Get("/projects/{project}/shares", access.Shares)
 			r.Post("/projects/{project}/shares", access.CreateShare)
 			r.Delete("/projects/{project}/shares/{id}", access.RevokeShare)

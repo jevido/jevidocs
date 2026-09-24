@@ -16,6 +16,8 @@
   let shareDays = $state(30)
   let created = $state<NewShareLink | null>(null)
   let busy = $state(false)
+  let domains = $state.raw<string[]>([])
+  let domainInput = $state('')
 
   const admin = can('admin')
   // Admins read every private project already; members matter for the rest.
@@ -28,6 +30,7 @@
     Promise.all([
       accessApi.members(project).then((m) => (members = m ?? [])),
       accessApi.shares(project).then((s) => (shares = s ?? [])),
+      accessApi.domains(project).then((d) => (domains = d?.domains ?? [])),
       admin ? assetsApi.users().then((u) => (users = u ?? [])) : Promise.resolve(),
     ])
       .catch(toast.error)
@@ -50,6 +53,34 @@
     } finally {
       busy = false
     }
+  }
+
+  async function saveDomains(next: string[]) {
+    busy = true
+    try {
+      domains = (await accessApi.setDomains(project, next)).domains
+      return true
+    } catch (err) {
+      toast.error(err)
+      return false
+    } finally {
+      busy = false
+    }
+  }
+
+  async function addDomain(e: SubmitEvent) {
+    e.preventDefault()
+    const d = domainInput.trim()
+    if (!d) return
+    if (await saveDomains([...domains, d])) {
+      domainInput = ''
+      toast.ok('Domain added')
+    }
+  }
+
+  async function removeDomain(d: string) {
+    if (!confirm(`Stop giving everyone @${d} access?`)) return
+    if (await saveDomains(domains.filter((x) => x !== d))) toast.ok('Domain removed')
   }
 
   async function removeMember(m: Member) {
@@ -112,7 +143,8 @@
   {:else}
     <p class="note">
       This project is <strong>private</strong>. It reads as “not found” for everyone except: admins, the members below
-      (after signing in on the docs site with their jevidocs account), and anyone with a share link.
+      and users at the email domains below (after signing in on the docs site with their jevidocs account), and anyone
+      with a share link.
     </p>
   {/if}
 
@@ -150,6 +182,33 @@
         </select>
         <button class="btn" type="submit" disabled={!pick || busy}>Add member</button>
         <a class="hint" href="#/users">Create users on the Users page</a>
+      </form>
+    {/if}
+  {/if}
+
+  <h3>Email domains</h3>
+  <p class="muted">
+    Every signed-in user whose email address ends in one of these domains can read the project, without being added as
+    a member. Exact match: <code>example.com</code> does not include <code>mail.example.com</code>.
+  </p>
+  {#if !loading}
+    {#if domains.length === 0}
+      <p class="muted">No domains.</p>
+    {:else}
+      <ul class="domains">
+        {#each domains as d (d)}
+          <li>
+            <code>@{d}</code>
+            {#if admin}<button class="btn sm danger" type="button" disabled={busy} onclick={() => removeDomain(d)}>Remove</button>{/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+    {#if admin}
+      <form class="row" onsubmit={addDomain}>
+        <label class="sr-only" for="domain-input">Email domain</label>
+        <input id="domain-input" type="text" placeholder="example.com" bind:value={domainInput} autocomplete="off" />
+        <button class="btn" type="submit" disabled={!domainInput.trim() || busy}>Add domain</button>
       </form>
     {/if}
   {/if}
@@ -232,4 +291,6 @@
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
+  .domains { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .domains li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 </style>

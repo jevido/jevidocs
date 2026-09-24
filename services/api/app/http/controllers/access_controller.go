@@ -96,3 +96,29 @@ func (r *AccessController) RevokeShare(ctx http.Context) http.Response {
 	}
 	return ok(ctx, http.Json{"ok": true})
 }
+
+func (r *AccessController) Domains(ctx http.Context) http.Response {
+	p, err := store.FindProject(ctx.Request().Route("project"), true)
+	if err != nil {
+		return fail(ctx, err)
+	}
+	return ok(ctx, http.Json{"domains": store.Domains(p)})
+}
+
+func (r *AccessController) SetDomains(ctx http.Context) http.Response {
+	p, err := store.FindProject(ctx.Request().Route("project"), true)
+	if err != nil {
+		return fail(ctx, err)
+	}
+	var in struct {
+		Domains []string `json:"domains"`
+	}
+	if err := ctx.Request().Bind(&in); err != nil {
+		return fail(ctx, store.ValidationError{Msg: "invalid body"})
+	}
+	ds, err := store.SetDomains(p, in.Domains)
+	if err != nil {
+		return fail(ctx, err)
+	}
+	return ok(ctx, http.Json{"domains": ds})
+}

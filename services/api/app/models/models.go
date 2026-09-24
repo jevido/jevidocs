@@ -33,6 +33,9 @@ type Project struct {
 	// language. Pages of DefaultLocale are stored with locale ''.
 	Locales       string `json:"locales"`
 	DefaultLocale string `json:"default_locale"`
+	// AllowedDomains is a comma list of email domains whose users may read
+	// this project when it is private (e.g. "example.com").
+	AllowedDomains string `json:"-"`
 	// Access is how the current reader may read the project (public,
 	// admin, member or share). Not stored; set by store.ReadableProject.
 	Access string `gorm:"-" json:"-"`

@@ -23,7 +23,7 @@ export type Project = {
   versions?: VersionLink[]
   // How the reader got in: public, or a private project through admin
   // rights, membership or a share link.
-  access?: 'public' | 'admin' | 'member' | 'share'
+  access?: 'public' | 'admin' | 'member' | 'domain' | 'share'
   updated_at: string
 }
 

@@ -18,6 +18,9 @@ export const accessApi = {
     request<{ ok: boolean }>('POST', `${base(project)}/members`, { user_id: userId }),
   removeMember: (project: string, userId: number) =>
     request<{ ok: boolean }>('DELETE', `${base(project)}/members/${userId}`),
+  domains: (project: string) => request<{ domains: string[] }>('GET', `${base(project)}/domains`),
+  setDomains: (project: string, domains: string[]) =>
+    request<{ domains: string[] }>('PUT', `${base(project)}/domains`, { domains }),
   shares: (project: string) => request<ShareLink[]>('GET', `${base(project)}/shares`),
   createShare: (project: string, name: string, expiresDays: number) =>
     request<NewShareLink>('POST', `${base(project)}/shares`, { name, expires_days: expiresDays }),

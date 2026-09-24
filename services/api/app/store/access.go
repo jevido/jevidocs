@@ -3,6 +3,8 @@ package store
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,6 +27,7 @@ const (
 	AccessAdmin  = "admin"
 	AccessMember = "member"
 	AccessShare  = "share"
+	AccessDomain = "domain"
 )
 
 // ReaderFrom resolves a bearer token (may be empty or invalid) and a share
@@ -73,6 +76,9 @@ func accessOf(p models.Project, r Reader) (string, error) {
 		}
 		if n > 0 {
 			return AccessMember, nil
+		}
+		if emailInDomains(r.User.Email, Domains(p)) {
+			return AccessDomain, nil
 		}
 	}
 	if r.Share != "" {
@@ -232,4 +238,66 @@ func RevokeShare(p models.Project, id uint) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// Email domains.
+
+var domainRe = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
+
+// Domains lists p's allowed email domains.
+func Domains(p models.Project) []string {
+	out := []string{}
+	for _, d := range strings.Split(p.AllowedDomains, ",") {
+		if d = strings.TrimSpace(d); d != "" {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// NormalizeDomains validates and cleans a list like ["@Example.com", "example.org"].
+func NormalizeDomains(in []string) ([]string, error) {
+	seen := map[string]bool{}
+	out := []string{}
+	for _, d := range in {
+		d = strings.ToLower(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(d), "@")))
+		if d == "" || seen[d] {
+			continue
+		}
+		if !domainRe.MatchString(d) {
+			return nil, ValidationError{fmt.Sprintf("%q is not a domain like example.com", d)}
+		}
+		seen[d] = true
+		out = append(out, d)
+	}
+	if len(out) > 20 {
+		return nil, ValidationError{"at most 20 domains"}
+	}
+	return out, nil
+}
+
+// SetDomains replaces p's allowed email domains.
+func SetDomains(p models.Project, domains []string) ([]string, error) {
+	clean, err := NormalizeDomains(domains)
+	if err != nil {
+		return nil, err
+	}
+	_, err = facades.Orm().Query().Exec(`UPDATE projects SET allowed_domains = ? WHERE id = ?`, strings.Join(clean, ","), p.ID)
+	return clean, err
+}
+
+// emailInDomains matches the part after the last "@" exactly (no
+// subdomains), case-insensitively.
+func emailInDomains(email string, domains []string) bool {
+	i := strings.LastIndex(email, "@")
+	if i < 0 || len(domains) == 0 {
+		return false
+	}
+	host := strings.ToLower(strings.TrimSpace(email[i+1:]))
+	for _, d := range domains {
+		if host == d {
+			return true
+		}
+	}
+	return false
 }

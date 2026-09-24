@@ -16,6 +16,10 @@ not).
   and by anyone presenting a valid share link. The check is one function
   (`store.ReadableProject`) used by every public read route and MCP read
   tool.
+- A project can also list email domains: every signed-in user whose
+  address is exactly at one of them reads it like a member. Accounts are
+  still created by admins, so a domain never admits a stranger; matching is
+  exact (no subdomains) because a looser rule is easy to misconfigure.
 - Everyone else gets 404, not 403, so the existence of a private project is
   not revealed.
 - The docs site signs readers in with the admin's accounts (bearer token in
