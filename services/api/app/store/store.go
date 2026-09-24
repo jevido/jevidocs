@@ -411,7 +411,13 @@ func FindPageByID(p models.Project, id uint) (models.Page, error) {
 }
 
 // DeletePage removes a page.
+//
+// Its revisions go with it. Feedback and views are keyed by slug and stay:
+// a page recreated at the same slug keeps its history there.
 func DeletePage(p models.Project, pg models.Page) error {
+	if _, err := facades.Orm().Query().Exec(`DELETE FROM page_revisions WHERE page_id = ?`, pg.ID); err != nil {
+		return err
+	}
 	_, err := facades.Orm().Query().Delete(&pg)
 	if err == nil {
 		touch(p)
