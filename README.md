@@ -23,6 +23,9 @@ and are read on a fumadocs-style docs site.
   admin endpoints, including bulk sync from files.
 - **MCP:** hosted at `/mcp`; agents list, read and search docs, and with a
   token create, update and delete pages.
+- **i18n and versions:** per-locale pages with fallback and a language
+  switcher; projects in a version group get a version switcher.
+- **Sources:** sync pages from a GitHub repo folder (webhook on push).
 - **OpenAPI:** generate an API reference (a page per operation) from an
   OpenAPI 3 spec.
 - **CLI:** `jevidocs init | push | pull | search | openapi` for docs as code;
@@ -84,6 +87,8 @@ Requirements: Go 1.27+, Bun, Task, Podman.
 ```sh
 bun install
 task dev        # Postgres + API (4730) + site (4720) + admin (4740)
+task check      # gofmt, vet, Go tests, svelte-check
+task e2e        # browser smoke tests (needs the dev stack running)
 ```
 
 Sign in to the admin at http://127.0.0.1:4740 with `admin@example.com` /
