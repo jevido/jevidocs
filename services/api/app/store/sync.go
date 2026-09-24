@@ -28,6 +28,17 @@ func SyncProject(in ProjectInput, fsys fs.FS, keepPrefix string) error {
 	if p.ID == 0 {
 		p, err = SaveProject(in, nil)
 	} else {
+		// Appearance is managed in the admin; the files only own the
+		// project's identity, so keep what is already set.
+		if in.Accent == "" {
+			in.Accent = p.Accent
+		}
+		if in.LogoURL == "" {
+			in.LogoURL = p.LogoURL
+		}
+		if in.Banner == "" {
+			in.Banner = p.Banner
+		}
 		in.Slug = ""
 		p, err = SaveProject(in, &p)
 	}

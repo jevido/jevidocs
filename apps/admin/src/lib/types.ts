@@ -11,6 +11,8 @@ export type Project = {
   public: boolean
   edit_url: string
   banner: string
+  accent: string
+  logo_url: string
   managed?: boolean
   updated_at: string
 }
@@ -39,4 +41,4 @@ export type TocItem = { depth: number; title: string; url: string }
 
 export type Token = { id: number; name: string; last_used_at: string | null; created_at: string }
 
-export type Stats = { projects: number; pages: number; tokens: number }
+export type Stats = { projects: number; pages: number; tokens: number; views_30d?: number }

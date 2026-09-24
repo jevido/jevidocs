@@ -59,7 +59,7 @@ func (r *AdminController) Stats(ctx http.Context) http.Response {
 	projects, _ := facades.Orm().Query().Model(&models.Project{}).Count()
 	pages, _ := facades.Orm().Query().Model(&models.Page{}).Count()
 	tokens, _ := facades.Orm().Query().Model(&models.ApiToken{}).Where("kind", "api").Count()
-	return ok(ctx, http.Json{"projects": projects, "pages": pages, "tokens": tokens})
+	return ok(ctx, http.Json{"projects": projects, "pages": pages, "tokens": tokens, "views_30d": store.ViewsLastDays(30)})
 }
 
 func (r *AdminController) Projects(ctx http.Context) http.Response {

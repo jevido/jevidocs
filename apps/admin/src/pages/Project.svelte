@@ -5,6 +5,7 @@
   import { toast } from '../lib/toast.svelte'
   import ProjectForm from '../lib/ProjectForm.svelte'
   import FeedbackPanel from '../lib/FeedbackPanel.svelte'
+  import InsightsPanel from '../lib/InsightsPanel.svelte'
   import AssetsPanel from '../lib/AssetsPanel.svelte'
   import OpenAPIImport from '../lib/OpenAPIImport.svelte'
   import type { AdminPage, ProjectInput } from '../lib/types'
@@ -14,7 +15,7 @@
   let form = $state<ProjectInput | null>(null)
   let managed = $state(false)
   let pages = $state.raw<AdminPage[]>([])
-  let tab = $state<'pages' | 'assets' | 'feedback' | 'settings'>('pages')
+  let tab = $state<'pages' | 'assets' | 'insights' | 'feedback' | 'settings'>('pages')
   let busy = $state(false)
   let filter = $state('')
 
@@ -33,6 +34,8 @@
           public: p.public,
           edit_url: p.edit_url ?? '',
           banner: p.banner ?? '',
+          accent: p.accent ?? '',
+          logo_url: p.logo_url ?? '',
         }
         managed = !!p.managed
       })
@@ -128,6 +131,7 @@
 <div class="tabs" role="tablist">
   <button role="tab" aria-selected={tab === 'pages'} onclick={() => (tab = 'pages')}>Pages <span class="badge">{pages.length}</span></button>
   <button role="tab" aria-selected={tab === 'assets'} onclick={() => (tab = 'assets')}>Assets</button>
+  <button role="tab" aria-selected={tab === 'insights'} onclick={() => (tab = 'insights')}>Insights</button>
   <button role="tab" aria-selected={tab === 'feedback'} onclick={() => (tab = 'feedback')}>Feedback</button>
   <button role="tab" aria-selected={tab === 'settings'} onclick={() => (tab = 'settings')}>Settings</button>
 </div>
@@ -176,6 +180,8 @@
   </div>
 {:else if tab === 'assets'}
   <AssetsPanel project={slug} />
+{:else if tab === 'insights'}
+  <InsightsPanel project={slug} {pages} />
 {:else if tab === 'feedback'}
   <FeedbackPanel project={slug} />
 {:else if form}

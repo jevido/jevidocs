@@ -11,6 +11,10 @@
   import Toc from './Toc.svelte'
   import TreeItems from './TreeItems.svelte'
   import RootToggle from './RootToggle.svelte'
+  import ReaderExtras from './ReaderExtras.svelte'
+  import MobileToc from './MobileToc.svelte'
+  import { applyAccent, setPageMeta } from '../lib/project-theme'
+  import { sidebar } from '../lib/sidebar.svelte'
   import { containsSlug } from '../lib/tree'
   import type { TreeNode } from '../lib/api'
 
@@ -75,6 +79,7 @@
       .then(async (data) => {
         page = data
         status = 'ready'
+        api.trackView(p, data.slug)
         await tick()
         const hash = untrack(() => router.hash)
         scrollToHash(hash)
@@ -102,6 +107,13 @@
       status === 'ready' && page ? `${page.title} | ${name}` : status === 'notfound' ? `Not found | ${name}` : name
   })
 
+  $effect(() => applyAccent(project?.accent))
+  $effect(() => {
+    if (status === 'ready' && page) {
+      setPageMeta(page.title, page.description || project?.description || '', location.origin + router.href(page.slug))
+    }
+  })
+
   const crumbs = $derived((page?.breadcrumbs ?? []).slice(0, -1))
   const updated = $derived.by(() => {
     if (!page?.updated_at) return ''
@@ -124,7 +136,9 @@
   <div class="progress" aria-hidden="true"></div>
 {/if}
 
-<div class="layout">
+<ReaderExtras previous={page?.previous?.slug} next={page?.next?.slug} />
+
+<div class="layout" class:collapsed={sidebar.collapsed}>
   {#if drawerOpen}
     <div class="scrim" role="presentation" onclick={() => (drawerOpen = false)}></div>
   {/if}
@@ -156,6 +170,9 @@
       <div class="sidebar-foot">
         <a href={api.llmsUrl(route.project)} target="_blank" rel="noreferrer">llms.txt</a>
         <a href={api.llmsFullUrl(route.project)} target="_blank" rel="noreferrer">llms-full.txt</a>
+        <button class="collapse" type="button" aria-label="Collapse sidebar" title="Collapse sidebar" onclick={() => sidebar.toggle(true)}>
+          <Icon name="chevronLeft" size={15} />
+        </button>
       </div>
     {/if}
   </aside>
@@ -209,6 +226,7 @@
         {#if page.description}<p class="description">{page.description}</p>{/if}
         <PageActions markdown={page.markdown} markdownUrl={api.markdownUrl(route.project, page.slug)} />
         <div class="divider"></div>
+        <MobileToc items={toc} />
 
         <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
         <div class="prose" bind:this={content} onclick={onContentClick}>
@@ -303,6 +321,37 @@
   }
   .sidebar-foot a { color: var(--muted-fg); text-decoration: none; font-family: var(--font-mono); }
   .sidebar-foot a:hover { color: var(--fg); }
+  .sidebar-foot .collapse {
+    margin-left: auto;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: none;
+    color: var(--muted-fg);
+    cursor: pointer;
+    padding: 0;
+  }
+  .sidebar-foot .collapse:hover { color: var(--fg); }
+  @media (min-width: 801px) {
+    .layout.collapsed { grid-template-columns: minmax(0, 1fr) var(--toc-w); }
+    .layout.collapsed .sidebar { display: none; }
+  }
+  @media (min-width: 801px) and (max-width: 1200px) {
+    .layout.collapsed { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 800px) {
+    .sidebar-foot .collapse { display: none; }
+  }
+  @media print {
+    .layout { display: block; }
+    .sidebar,
+    .toc-col,
+    .banner,
+    .progress,
+    .page-foot :global(.feedback),
+    .pager { display: none !important; }
+    .main { padding: 0; }
+  }
 
   .main {
     min-width: 0;

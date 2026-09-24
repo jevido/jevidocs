@@ -136,3 +136,20 @@ kbd {
   background: var(--bg);
   color: var(--muted-fg);
 }
+
+/* fumadocs-style colour presets, chosen with a project's accent. */
+:root[data-preset='neutral'] { --brand: hsl(0 0% 20%); }
+:root.dark[data-preset='neutral'] { --brand: hsl(0 0% 85%); }
+:root[data-preset='ocean'] { --brand: hsl(210 90% 45%); }
+:root.dark[data-preset='ocean'] { --brand: hsl(205 90% 62%); }
+:root[data-preset='purple'] { --brand: hsl(270 75% 55%); }
+:root.dark[data-preset='purple'] { --brand: hsl(270 85% 72%); }
+:root[data-preset='emerald'] { --brand: hsl(160 84% 32%); }
+:root.dark[data-preset='emerald'] { --brand: hsl(158 64% 52%); }
+:root[data-preset='ruby'] { --brand: hsl(350 80% 48%); }
+:root.dark[data-preset='ruby'] { --brand: hsl(350 90% 66%); }
+
+@media print {
+  body { background: #fff; color: #000; }
+  a { color: inherit; }
+}

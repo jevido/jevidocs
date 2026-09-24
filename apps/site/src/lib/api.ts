@@ -10,6 +10,8 @@ export type Project = {
   links: Link[] | null
   public: boolean
   banner?: string
+  accent?: string
+  logo_url?: string
   updated_at: string
 }
 
@@ -91,6 +93,19 @@ export const api = {
   search: (project: string, q: string, signal?: AbortSignal) =>
     get<SearchResult[] | null>(`${p(project)}/search?q=${encodeURIComponent(q)}`, signal),
   markdownUrl: (project: string, slug: string) => `${API_URL}${p(project)}/page.md?slug=${encodeURIComponent(slug)}`,
+  // One page view, fire and forget. text/plain avoids a CORS preflight; the
+  // API parses the body as JSON regardless.
+  trackView: (project: string, slug: string) => {
+    try {
+      const body = new Blob([JSON.stringify({ slug })], { type: 'text/plain' })
+      const url = `${API_URL}${p(project)}/views`
+      if (!navigator.sendBeacon?.(url, body)) {
+        void fetch(url, { method: 'POST', body, keepalive: true, mode: 'cors' }).catch(() => {})
+      }
+    } catch {
+      // analytics must never break reading
+    }
+  },
   llmsUrl: (project: string) => `${API_URL}${p(project)}/llms.txt`,
   llmsFullUrl: (project: string) => `${API_URL}${p(project)}/llms-full.txt`,
 }

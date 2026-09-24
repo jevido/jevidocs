@@ -45,6 +45,22 @@
     <input type="text" placeholder="https://github.com/you/repo/blob/main/docs/{'{path}'}" bind:value={value.edit_url} />
     <span class="hint">"Edit this page" link. <code>{'{path}'}</code> becomes the page's file, e.g. <code>guides/index.md</code>.</span>
   </label>
+  <div class="field wide">
+    <span>Accent</span>
+    <div class="row">
+      <input
+        type="color"
+        aria-label="Pick accent colour"
+        value={/^#[0-9a-f]{6}$/i.test(value.accent) ? value.accent : '#7c3aed'}
+        oninput={(e) => (value.accent = (e.currentTarget as HTMLInputElement).value)} />
+      <input type="text" placeholder="ocean, #7c3aed, hsl(262 83% 58%)…" bind:value={value.accent} />
+    </div>
+    <span class="hint">A preset (neutral, ocean, purple, emerald, ruby) or a CSS colour. Empty uses the default.</span>
+  </div>
+  <label class="field wide">
+    Logo URL
+    <input type="url" placeholder="https://…/logo.svg" bind:value={value.logo_url} />
+  </label>
   <label class="field wide">
     Banner
     <input type="text" placeholder="Announcement shown above every page" bind:value={value.banner} />

@@ -21,7 +21,11 @@
       <Icon name="menu" size={18} />
     </button>
     <a class="brand" href={router.href('')}>
-      <Logo />
+      {#if project?.logo_url}
+        <img class="project-logo" src={project.logo_url} alt="" width="22" height="22" />
+      {:else}
+        <Logo />
+      {/if}
       <span>{project?.name ?? 'Docs'}</span>
     </a>
     <a class="home" href="/">jevidocs</a>
@@ -126,5 +130,9 @@
   @media (max-width: 800px) {
     .menu { display: inline-flex; }
     .home { display: none; }
+  }
+  .project-logo { width: 22px; height: 22px; object-fit: contain; border-radius: 4px; }
+  @media print {
+    .nav { display: none; }
   }
 </style>

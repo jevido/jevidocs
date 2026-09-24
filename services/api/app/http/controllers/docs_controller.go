@@ -51,10 +51,12 @@ func (r *DocsController) Search(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
-	res, err := store.Search(p, ctx.Request().Query("q", ""), 20)
+	q := ctx.Request().Query("q", "")
+	res, err := store.Search(p, q, 20)
 	if err != nil {
 		return fail(ctx, err)
 	}
+	store.RecordSearch(p, q, len(res))
 	return ok(ctx, res)
 }
 

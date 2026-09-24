@@ -28,7 +28,7 @@
 {#if error}<p class="muted">{error}</p>{/if}
 
 <div class="stats">
-  {#each [{ label: 'Projects', value: stats?.projects }, { label: 'Pages', value: stats?.pages }, { label: 'API tokens', value: stats?.tokens }] as s (s.label)}
+  {#each [{ label: 'Projects', value: stats?.projects }, { label: 'Pages', value: stats?.pages }, { label: 'API tokens', value: stats?.tokens }, { label: 'Views (30 days)', value: stats?.views_30d }] as s (s.label)}
     <div class="card card-pad stat">
       <span class="muted">{s.label}</span>
       <strong>{s.value ?? '—'}</strong>

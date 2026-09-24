@@ -13,7 +13,7 @@
   let busy = $state(false)
 
   function blank(): ProjectInput {
-    return { slug: '', name: '', description: '', github_url: '', links: [], public: true, edit_url: '', banner: '' }
+    return { slug: '', name: '', description: '', github_url: '', links: [], public: true, edit_url: '', banner: '', accent: '', logo_url: '' }
   }
 
   function load() {

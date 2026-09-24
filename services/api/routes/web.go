@@ -16,6 +16,7 @@ func Web() {
 
 	docs := controllers.NewDocsController()
 	feedback := controllers.NewFeedbackController()
+	analytics := controllers.NewAnalyticsController()
 	revisions := controllers.NewRevisionController()
 	facades.Route().Get("/api/projects", docs.Projects)
 	facades.Route().Prefix("/api/projects").Group(func(r route.Router) {
@@ -27,6 +28,7 @@ func Web() {
 		r.Get("/{project}/llms-full.txt", docs.LLMsFull)
 		r.Get("/{project}/sitemap.xml", docs.Sitemap)
 		r.Post("/{project}/feedback", feedback.Submit)
+		r.Post("/{project}/views", analytics.View)
 	})
 
 	admin := controllers.NewAdminController()
@@ -57,6 +59,7 @@ func Web() {
 			r.Get("/projects/{project}/pages/{id}/revisions/{rid}", revisions.Show)
 			r.Post("/projects/{project}/pages/{id}/revisions/{rid}/restore", revisions.Restore)
 			r.Get("/projects/{project}/feedback", feedback.List)
+			r.Get("/projects/{project}/insights", analytics.Insights)
 			r.Get("/users", users.Index)
 			r.Post("/users", users.Store)
 			r.Delete("/users/{id}", users.Delete)

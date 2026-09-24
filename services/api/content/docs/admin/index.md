@@ -85,6 +85,19 @@ Markdown: it is uploaded and the `![name](url)` is inserted where the cursor
 was. Uploading the same bytes twice reuses the existing asset. Asset URLs
 never change, so they are cached for a year.
 
+## Insights
+
+The **Insights** tab of a project shows the last 7, 30 or 90 days:
+
+- **Page views** per day, counted once per page load in the docs reader
+  (bots and unknown pages are ignored; nothing identifies the reader).
+- **Top pages** by views, linking to the editor.
+- **Top searches** from the search dialog, with how many results each found.
+- **Content gaps**: searches that found nothing. These are the pages worth
+  writing next.
+
+The dashboard shows the total views of every project over 30 days.
+
 ## Feedback
 
 Every docs page ends with "Was this page helpful?". Readers answer with a
