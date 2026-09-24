@@ -109,18 +109,24 @@
 
   router.guard = () => !dirty || confirm('You have unsaved changes. Leave anyway?')
 
-  // Debounced preview of the body, rendered by the API.
+  // Debounced preview of the body, rendered by the API. Only the latest
+  // request may update it, so a slow older response cannot overwrite it.
+  let previewSeq = 0
   $effect(() => {
     const body = form.body
     const timer = setTimeout(() => {
+      const seq = ++previewSeq
       api
         .preview(body)
         .then((r) => {
+          if (seq !== previewSeq) return
           html = r.html
           toc = r.toc ?? []
           previewError = ''
         })
-        .catch((e) => (previewError = e.message))
+        .catch((e) => {
+          if (seq === previewSeq) previewError = e.message
+        })
     }, 400)
     return () => clearTimeout(timer)
   })

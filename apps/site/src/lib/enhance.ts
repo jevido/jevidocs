@@ -37,7 +37,7 @@ export function enhance(root: HTMLElement) {
   }
   // A bare <pre> (no figure) still deserves a copy button.
   for (const pre of root.querySelectorAll<HTMLElement>('pre')) {
-    if (pre.closest('.fd-codeblock')) continue
+    if (pre.closest('.fd-codeblock') || pre.closest('.fd-mermaid')) continue
     const fig = document.createElement('figure')
     fig.className = 'fd-codeblock'
     fig.dataset.untitled = ''
