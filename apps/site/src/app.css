@@ -1,0 +1,138 @@
+/* Theme tokens follow fumadocs' neutral preset. `.dark` on <html> is set
+   before first paint by the inline script in each HTML entry. */
+:root {
+  color-scheme: light;
+  --bg: hsl(0 0% 98%);
+  --fg: hsl(0 0% 3.9%);
+  --muted: hsl(0 0% 96.1%);
+  --muted-fg: hsl(0 0% 45.1%);
+  --popover: hsl(0 0% 100%);
+  --card: hsl(0 0% 96.5%);
+  --border: hsl(0 0% 89.8%);
+  --border-soft: hsl(0 0% 92%);
+  --primary: hsl(0 0% 9%);
+  --primary-fg: hsl(0 0% 98%);
+  --accent: hsl(0 0% 93%);
+  --accent-fg: hsl(0 0% 9%);
+  --ring: hsl(0 0% 63.9%);
+  --brand: hsl(262 83% 58%);
+  --overlay: hsl(0 0% 0% / 0.3);
+  --shadow: 0 8px 30px hsl(0 0% 0% / 0.08);
+
+  --info: hsl(217 91% 55%);
+  --warn: hsl(38 92% 45%);
+  --error: hsl(0 84% 55%);
+  --success: hsl(142 70% 38%);
+  --idea: hsl(270 70% 58%);
+
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --nav-h: 56px;
+  --sidebar-w: 268px;
+  --toc-w: 240px;
+  --radius: 0.5rem;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --bg: hsl(0 0% 7.04%);
+  --fg: hsl(0 0% 92%);
+  --muted: hsl(0 0% 12.9%);
+  --muted-fg: hsl(0 0% 70% / 0.8);
+  --popover: hsl(0 0% 11.6%);
+  --card: hsl(0 0% 9.8%);
+  --border: hsl(0 0% 40% / 0.2);
+  --border-soft: hsl(0 0% 40% / 0.14);
+  --primary: hsl(0 0% 98%);
+  --primary-fg: hsl(0 0% 9%);
+  --accent: hsl(0 0% 40.9% / 0.3);
+  --accent-fg: hsl(0 0% 90%);
+  --ring: hsl(0 0% 54.9%);
+  --brand: hsl(262 90% 72%);
+  --overlay: hsl(0 0% 0% / 0.6);
+  --shadow: 0 8px 30px hsl(0 0% 0% / 0.5);
+
+  --info: hsl(213 94% 68%);
+  --warn: hsl(43 96% 56%);
+  --error: hsl(0 91% 71%);
+  --success: hsl(142 69% 58%);
+  --idea: hsl(270 95% 75%);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  scroll-padding-top: calc(var(--nav-h) + 16px);
+}
+
+body { margin: 0; min-height: 100vh; }
+
+a { color: inherit; }
+
+button { font: inherit; color: inherit; }
+
+::selection { background: color-mix(in oklab, var(--brand) 30%, transparent); }
+
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-primary { background: var(--primary); color: var(--primary-fg); }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { background: var(--card); color: var(--fg); border-color: var(--border); }
+.btn-secondary:hover { background: var(--accent); }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius);
+  border: 0;
+  background: transparent;
+  color: var(--muted-fg);
+  cursor: pointer;
+  text-decoration: none;
+}
+.icon-btn:hover { background: var(--accent); color: var(--accent-fg); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  background: var(--bg);
+  color: var(--muted-fg);
+}
