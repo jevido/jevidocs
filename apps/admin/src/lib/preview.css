@@ -172,3 +172,62 @@
 .fd-api-method[data-method="patch"] { color: #ea580c; background: color-mix(in oklab, #f97316 16%, transparent); }
 .fd-api-method[data-method="delete"] { color: #dc2626; background: color-mix(in oklab, #ef4444 16%, transparent); }
 .fd-api-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; background: none; border: 0; padding: 0; }
+
+/* ---- code lines: highlight, diff, focus, numbers (see app/docs/code.go) -- */
+pre:has(> code > .line) { padding-left: 0; padding-right: 0; }
+.fd-codeblock[data-untitled] pre:has(> code > .line) { padding-right: 0; }
+pre code > .line {
+  display: inline-block;
+  min-width: 100%;
+  box-sizing: border-box;
+  padding: 0 1rem;
+  border-left: 2px solid transparent;
+}
+pre code > .line[data-highlighted] {
+  background: color-mix(in oklab, #3b82f6 13%, transparent);
+  border-left-color: #3b82f6;
+}
+pre code > .line[data-diff] { position: relative; }
+pre code > .line[data-diff]::after {
+  position: absolute;
+  left: 0.3rem;
+  top: 0;
+  user-select: none;
+}
+pre code > .line[data-diff="add"] { background: color-mix(in oklab, #22c55e 15%, transparent); border-left-color: #22c55e; }
+pre code > .line[data-diff="add"]::after { content: "+"; color: #16a34a; }
+pre code > .line[data-diff="remove"] { background: color-mix(in oklab, #ef4444 14%, transparent); border-left-color: #ef4444; opacity: 0.8; }
+pre code > .line[data-diff="remove"]::after { content: "-"; color: #dc2626; }
+.fd-codeblock[data-has-focus] pre code > .line:not([data-focus]) {
+  filter: blur(0.6px);
+  opacity: 0.45;
+  transition: filter 0.2s, opacity 0.2s;
+}
+.fd-codeblock[data-has-focus]:hover pre code > .line { filter: none; opacity: 1; }
+.fd-codeblock[data-line-numbers] pre code { counter-reset: line; }
+.fd-codeblock[data-line-numbers] pre code > .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.6rem;
+  margin-right: 1rem;
+  text-align: right;
+  color: color-mix(in oklab, currentColor 40%, transparent);
+  user-select: none;
+}
+
+/* ---- mermaid ------------------------------------------------------------ */
+.fd-mermaid {
+  margin: 1.5em 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  text-align: center;
+}
+.fd-mermaid svg { max-width: 100%; height: auto; }
+.fd-mermaid-src { text-align: left; margin: 0; white-space: pre-wrap; font-size: 0.8rem; opacity: 0.8; }
+.fd-mermaid[data-rendered] .fd-mermaid-src { display: none; }
+
+/* ---- images ------------------------------------------------------------- */
+.fd-prose img { max-width: 100%; height: auto; border-radius: 0.5rem; cursor: zoom-in; }

@@ -24,6 +24,8 @@ export type TreeNode =
       index?: PageRef
       children: TreeNode[]
       defaultOpen: boolean
+      root?: boolean
+      description?: string
     }
 export type PageTree = { name: string; children: TreeNode[] }
 

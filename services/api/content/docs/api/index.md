@@ -3,6 +3,8 @@ title: REST API
 description: Every endpoint of the jevidocs API.
 position: 30
 section: Reference
+root: true
+icon: code
 ---
 
 Base URL: `https://api.jevidocs.jevido.app` (locally `http://127.0.0.1:4730`).

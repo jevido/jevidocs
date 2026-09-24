@@ -5,12 +5,14 @@ export type Route =
   | { name: 'project'; slug: string }
   | { name: 'page'; slug: string; id: number | 'new' }
   | { name: 'tokens' }
+  | { name: 'users' }
   | { name: 'notfound' }
 
 function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent)
   if (parts.length === 0) return { name: 'dashboard' }
   if (parts[0] === 'tokens' && parts.length === 1) return { name: 'tokens' }
+  if (parts[0] === 'users' && parts.length === 1) return { name: 'users' }
   if (parts[0] === 'projects') {
     if (parts.length === 1) return { name: 'projects' }
     if (parts.length === 2) return { name: 'project', slug: parts[1] }

@@ -7,11 +7,13 @@ import (
 
 // PageMeta is what the tree needs to know about a page.
 type PageMeta struct {
-	Slug     string
-	Title    string
-	Icon     string
-	Position int
-	Section  string
+	Slug        string
+	Title       string
+	Icon        string
+	Position    int
+	Section     string
+	Description string
+	Root        bool
 }
 
 // Node is one entry of a page tree, shaped like fumadocs' PageTree.
@@ -23,6 +25,9 @@ type Node struct {
 	Index       *Node   `json:"index,omitempty"`
 	Children    []*Node `json:"children,omitempty"`
 	DefaultOpen bool    `json:"defaultOpen,omitempty"`
+	// Root folders are shown as sidebar tabs, each with its own tree.
+	Root        bool   `json:"root,omitempty"`
+	Description string `json:"description,omitempty"`
 
 	position int
 	path     string
@@ -89,6 +94,10 @@ func BuildTree(name string, pages []PageMeta) Tree {
 		if isFolder[p.Slug] {
 			f := folderFor(p.Slug)
 			f.Name, f.Icon, f.position, f.section = p.Title, p.Icon, p.Position, p.Section
+			f.Root = p.Root && depth(p.Slug) == 1
+			if f.Root {
+				f.Description = p.Description
+			}
 			f.Index = &Node{Type: "page", Name: p.Title, Slug: p.Slug, Icon: p.Icon}
 			continue
 		}

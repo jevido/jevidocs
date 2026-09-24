@@ -10,13 +10,30 @@
   import SearchDialog from './SearchDialog.svelte'
   import Toc from './Toc.svelte'
   import TreeItems from './TreeItems.svelte'
+  import RootToggle from './RootToggle.svelte'
+  import { containsSlug } from '../lib/tree'
+  import type { TreeNode } from '../lib/api'
 
   interceptLinks()
 
   const route = $derived(router.route)
 
+
   let project = $state<ProjectWithTree | null>(null)
   let projectError = $state<string | null>(null)
+
+  // Root folders (fumadocs' sidebar tabs): the sidebar shows the tree of the
+  // root that holds the current page, or everything outside any root.
+  type RootFolder = Extract<TreeNode, { type: 'folder' }>
+  const allNodes = $derived<TreeNode[]>(project?.tree?.children ?? [])
+  const roots = $derived(allNodes.filter((n): n is RootFolder => n.type === 'folder' && !!n.root))
+  const outside = $derived(allNodes.filter((n) => !(n.type === 'folder' && n.root)))
+  const activeRoot = $derived(roots.find((r) => containsSlug(r, route.slug)) ?? null)
+  const sidebarNodes = $derived<TreeNode[]>(
+    activeRoot
+      ? [...(activeRoot.index ? [{ ...activeRoot.index, name: 'Overview' }] : []), ...activeRoot.children]
+      : outside,
+  )
 
   let page = $state<Page | null>(null)
   let status = $state<'loading' | 'ready' | 'notfound' | 'error'>('loading')
@@ -120,7 +137,15 @@
     </div>
     <div class="sidebar-scroll">
       {#if project}
-        <TreeItems nodes={project.tree?.children ?? []} onnavigate={() => (drawerOpen = false)} />
+        {#if roots.length > 0}
+          <RootToggle
+            projectName={project.name}
+            {roots}
+            active={activeRoot}
+            rest={outside}
+            onnavigate={() => (drawerOpen = false)} />
+        {/if}
+        <TreeItems nodes={sidebarNodes} onnavigate={() => (drawerOpen = false)} />
       {:else if !projectError}
         {#each Array(8) as _, i (i)}
           <div class="sk sk-item" style:width="{55 + ((i * 37) % 40)}%"></div>

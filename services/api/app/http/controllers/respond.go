@@ -18,6 +18,8 @@ func fail(ctx http.Context, err error) http.Response {
 		return ctx.Response().Json(http.StatusUnprocessableEntity, http.Json{"error": ve.Msg})
 	case errors.Is(err, store.ErrNotFound):
 		return ctx.Response().Json(http.StatusNotFound, http.Json{"error": "not found"})
+	case errors.Is(err, store.ErrTooManyAttempts):
+		return ctx.Response().Json(http.StatusTooManyRequests, http.Json{"error": err.Error()})
 	case errors.Is(err, store.ErrBadCredentials):
 		return ctx.Response().Json(http.StatusUnauthorized, http.Json{"error": err.Error()})
 	}

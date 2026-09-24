@@ -6,6 +6,7 @@
   import { snippets } from '../lib/snippets'
   import Preview from '../lib/Preview.svelte'
   import HistoryDrawer from '../lib/HistoryDrawer.svelte'
+  import { filesFrom, uploadInto } from '../lib/paste-upload'
   import type { AdminPage, AdminPageInput, TocItem } from '../lib/types'
   import { untrack } from 'svelte'
 
@@ -156,6 +157,14 @@
     form.body = el.value
   }
 
+  function onFiles(e: ClipboardEvent | DragEvent) {
+    const files = filesFrom(e)
+    if (!files.length || !textarea) return
+    e.preventDefault()
+    if (e instanceof DragEvent) textarea.focus()
+    uploadInto(textarea, project, files, (v) => (form.body = v))
+  }
+
   function onKeydown(e: KeyboardEvent) {
     if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault()
@@ -265,6 +274,8 @@
           bind:this={textarea}
           bind:value={form.body}
           onkeydown={onKeydown}
+          onpaste={onFiles}
+          ondrop={onFiles}
           spellcheck="false"
           aria-label="Markdown"
         ></textarea>

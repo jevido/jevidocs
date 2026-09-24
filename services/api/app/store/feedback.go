@@ -21,6 +21,20 @@ type RateLimiter struct {
 	hits   map[string][]time.Time
 }
 
+// Exceeded reports whether key is at its limit, without recording an event.
+func (r *RateLimiter) Exceeded(key string, now time.Time) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	cutoff := now.Add(-r.Window)
+	n := 0
+	for _, t := range r.hits[key] {
+		if t.After(cutoff) {
+			n++
+		}
+	}
+	return n >= r.Limit
+}
+
 // Allow records an event for key and reports whether it is within limits.
 func (r *RateLimiter) Allow(key string, now time.Time) bool {
 	r.mu.Lock()

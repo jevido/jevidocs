@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/goravel/framework/support/carbon"
 
@@ -53,11 +54,22 @@ func UserForToken(plain string) (models.User, models.ApiToken, error) {
 	return u, t, nil
 }
 
+// ErrTooManyAttempts is returned by Login when an address tried too often.
+var ErrTooManyAttempts = errors.New("too many sign-in attempts, try again later")
+
+// loginLimiter slows password guessing: 10 failed attempts per 15 minutes
+// per client address, in memory (one API process).
+var loginLimiter = &RateLimiter{Limit: 10, Window: 15 * time.Minute}
+
 // Login checks credentials and issues a session token.
-func Login(email, password string) (string, models.User, error) {
+func Login(email, password, ip string) (string, models.User, error) {
+	if loginLimiter.Exceeded(ip, time.Now()) {
+		return "", models.User{}, ErrTooManyAttempts
+	}
 	var u models.User
 	_ = facades.Orm().Query().Where("email", strings.ToLower(strings.TrimSpace(email))).First(&u)
 	if u.ID == 0 || !facades.Hash().Check(password, u.Password) {
+		loginLimiter.Allow(ip, time.Now())
 		return "", u, ErrBadCredentials
 	}
 	plain, _, err := IssueToken(u, "admin session", "session")

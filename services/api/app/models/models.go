@@ -22,6 +22,9 @@ type Project struct {
 	EditURL string `gorm:"column:edit_url" json:"edit_url"`
 	// Banner is an announcement shown above every page (Markdown inline).
 	Banner string `json:"banner"`
+	// Accent is a CSS colour or a preset name; LogoURL an https image.
+	Accent  string `json:"accent"`
+	LogoURL string `gorm:"column:logo_url" json:"logo_url"`
 	// Managed projects are synced from files on start (the jevidocs docs).
 	Managed bool `json:"managed"`
 }
@@ -47,6 +50,8 @@ type Page struct {
 	RenderVersion int `json:"-"`
 	// SourcePath is the file a synced page came from, e.g. guides/index.md.
 	SourcePath string `json:"source_path"`
+	// Root makes a folder index page's folder a sidebar tab.
+	Root bool `json:"root"`
 }
 
 // User is an admin account.

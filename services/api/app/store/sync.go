@@ -15,7 +15,10 @@ import (
 // fsys: `guides/index.md` becomes slug `guides`, `index.md` the project
 // index. Pages without a file are removed, so the files are the source of
 // truth. Unchanged pages are not rewritten.
-func SyncProject(in ProjectInput, fsys fs.FS) error {
+//
+// Pages under keepPrefix (generated elsewhere, e.g. from OpenAPI) survive the
+// pruning.
+func SyncProject(in ProjectInput, fsys fs.FS, keepPrefix string) error {
 	p, err := FindProject(in.Slug, true)
 	if err != nil && err != ErrNotFound {
 		return err
@@ -38,7 +41,7 @@ func SyncProject(in ProjectInput, fsys fs.FS) error {
 		}
 	}
 
-	_, err = SyncPages(p, fsys, true)
+	_, err = syncPages(p, fsys, true, keepPrefix)
 	return err
 }
 
@@ -53,6 +56,10 @@ type SyncResult struct {
 // SyncPages makes p's pages match the Markdown files in fsys. With prune,
 // pages that have no file are deleted.
 func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
+	return syncPages(p, fsys, prune, "")
+}
+
+func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (SyncResult, error) {
 	var res SyncResult
 	existing, err := AdminPages(p)
 	if err != nil {
@@ -88,12 +95,12 @@ func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
 			_, body := docs.SplitFrontMatter(string(raw))
 			if full.Body == body && full.Title == title && full.Description == fm.Description &&
 				full.Icon == fm.Icon && full.Section == fm.Section && full.Position == fm.Position && full.Published &&
-				full.SourcePath == file {
+				full.SourcePath == file && full.Root == fm.Root {
 				res.Unchanged++
 				return nil
 			}
-			pub := true
-			in.Published = &pub
+			pub, root := true, fm.Root
+			in.Published, in.Root = &pub, &root
 			if _, err := SavePage(p, in, &full); err != nil {
 				return fmt.Errorf("%s: %w", file, err)
 			}
@@ -113,6 +120,9 @@ func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
 		return res, nil
 	}
 	for s, pg := range bySlug {
+		if keepPrefix != "" && (s == keepPrefix || strings.HasPrefix(s, keepPrefix+"/")) {
+			continue
+		}
 		if !seen[s] {
 			if err := DeletePage(p, pg); err != nil {
 				return res, err

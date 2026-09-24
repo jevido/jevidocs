@@ -26,6 +26,7 @@ section: Guides
 | `icon` | Optional sidebar icon name. |
 | `position` | Integer sort order among siblings (`order` works too). |
 | `section` | For top-level pages: starts a sidebar separator with this label. |
+| `root` | On a top-level folder's `index.md`: `true` turns the folder into a sidebar tab with its own tree (see [Root folders](/docs/writing/page-tree#root-folders)). |
 
 <Callout type="info" title="Fields win over front matter">
 When a page is saved through the admin app or the API, explicit fields

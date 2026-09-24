@@ -42,6 +42,8 @@ type ProjectView struct {
 	Managed     bool       `json:"managed"`
 	EditURL     string     `json:"edit_url"`
 	Banner      string     `json:"banner"`
+	Accent      string     `json:"accent"`
+	LogoURL     string     `json:"logo_url"`
 	UpdatedAt   string     `json:"updated_at"`
 	Tree        *docs.Tree `json:"tree,omitempty"`
 }
@@ -50,7 +52,8 @@ func ViewProject(p models.Project) ProjectView {
 	links := []Link{}
 	_ = json.Unmarshal([]byte(p.Links), &links)
 	v := ProjectView{Slug: p.Slug, Name: p.Name, Description: p.Description, GithubURL: p.GithubURL,
-		Links: links, Public: p.Public, Managed: p.Managed, EditURL: p.EditURL, Banner: p.Banner}
+		Links: links, Public: p.Public, Managed: p.Managed, EditURL: p.EditURL, Banner: p.Banner,
+		Accent: p.Accent, LogoURL: p.LogoURL}
 	if p.UpdatedAt != nil {
 		v.UpdatedAt = p.UpdatedAt.ToIso8601String()
 	}
@@ -97,6 +100,8 @@ type ProjectInput struct {
 	Public      *bool  `json:"public"`
 	EditURL     string `json:"edit_url"`
 	Banner      string `json:"banner"`
+	Accent      string `json:"accent"`
+	LogoURL     string `json:"logo_url"`
 }
 
 // SaveProject creates (existing == nil) or updates a project.
@@ -129,6 +134,11 @@ func SaveProject(in ProjectInput, existing *models.Project) (models.Project, err
 	p.GithubURL = strings.TrimSpace(in.GithubURL)
 	p.EditURL = strings.TrimSpace(in.EditURL)
 	p.Banner = strings.TrimSpace(in.Banner)
+	accent, logo, err := validateTheme(in.Accent, in.LogoURL)
+	if err != nil {
+		return p, err
+	}
+	p.Accent, p.LogoURL = accent, logo
 	if in.Links == nil {
 		in.Links = []Link{}
 	}
@@ -166,7 +176,7 @@ func DeleteProject(p models.Project) error {
 
 func pagesOf(p models.Project, published bool) ([]models.Page, error) {
 	var pages []models.Page
-	q := facades.Orm().Query().Select("id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "created_at", "updated_at").
+	q := facades.Orm().Query().Select("id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "root", "created_at", "updated_at").
 		Where("project_id", p.ID)
 	if published {
 		q = q.Where("published", true)
@@ -183,7 +193,8 @@ func Tree(p models.Project) (docs.Tree, error) {
 	}
 	metas := make([]docs.PageMeta, 0, len(pages))
 	for _, pg := range pages {
-		metas = append(metas, docs.PageMeta{Slug: pg.Slug, Title: pg.Title, Icon: pg.Icon, Position: pg.Position, Section: pg.Section})
+		metas = append(metas, docs.PageMeta{Slug: pg.Slug, Title: pg.Title, Icon: pg.Icon, Position: pg.Position,
+			Section: pg.Section, Description: pg.Description, Root: pg.Root})
 	}
 	return docs.BuildTree(p.Name, metas), nil
 }
@@ -262,6 +273,9 @@ type PageInput struct {
 	Section     string `json:"section"`
 	Published   *bool  `json:"published"`
 	Body        string `json:"body"`
+	// Root makes this folder index page's folder a sidebar tab. Nil keeps
+	// the current value (or the front matter's).
+	Root *bool `json:"root"`
 	// SourcePath is set by file syncs; empty keeps the current value.
 	SourcePath string `json:"-"`
 }
@@ -318,6 +332,14 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 	secs, _ := json.Marshal(nonNil(r.Sections))
 	pg.Sections = string(secs)
 	pg.RenderVersion = docs.RenderVersion
+	switch {
+	case in.Root != nil:
+		pg.Root = *in.Root
+	case fm.Root:
+		pg.Root = true
+	case existing == nil:
+		pg.Root = false
+	}
 	if in.SourcePath != "" {
 		pg.SourcePath = in.SourcePath
 	}
@@ -390,6 +412,11 @@ func EditURL(p models.Project, pg models.Page) string {
 		return ""
 	}
 	path := pg.SourcePath
+	if path == "" && p.Managed {
+		// Pages of a file-synced project without a file were generated
+		// (e.g. from OpenAPI); there is nothing to edit.
+		return ""
+	}
 	if path == "" {
 		path = pg.Slug + ".md"
 		if pg.Slug == "" {

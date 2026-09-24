@@ -31,9 +31,13 @@ func Web() {
 
 	admin := controllers.NewAdminController()
 	facades.Route().Post("/api/auth/login", admin.Login)
+	assets := controllers.NewAssetController()
+	users := controllers.NewUserController()
+	facades.Route().Get("/api/assets/{id}/{name}", assets.Show)
 	facades.Route().Middleware(middleware.Auth()).Group(func(r route.Router) {
 		r.Get("/api/auth/me", admin.Me)
 		r.Post("/api/auth/logout", admin.Logout)
+		r.Put("/api/auth/password", users.Password)
 		r.Prefix("/api/admin").Group(func(r route.Router) {
 			r.Get("/stats", admin.Stats)
 			r.Post("/preview", admin.Preview)
@@ -53,6 +57,12 @@ func Web() {
 			r.Get("/projects/{project}/pages/{id}/revisions/{rid}", revisions.Show)
 			r.Post("/projects/{project}/pages/{id}/revisions/{rid}/restore", revisions.Restore)
 			r.Get("/projects/{project}/feedback", feedback.List)
+			r.Get("/users", users.Index)
+			r.Post("/users", users.Store)
+			r.Delete("/users/{id}", users.Delete)
+			r.Get("/projects/{project}/assets", assets.Index)
+			r.Post("/projects/{project}/assets", assets.Upload)
+			r.Delete("/projects/{project}/assets/{id}", assets.Delete)
 			r.Get("/tokens", admin.Tokens)
 			r.Post("/tokens", admin.CreateToken)
 			r.Delete("/tokens/{id}", admin.DeleteToken)

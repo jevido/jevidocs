@@ -36,3 +36,19 @@ func TestRevisionWorthy(t *testing.T) {
 		t.Error("body change should make a revision")
 	}
 }
+
+func TestRateLimiterExceededDoesNotRecord(t *testing.T) {
+	r := &RateLimiter{Limit: 2, Window: time.Minute}
+	now := time.Now()
+	if r.Exceeded("a", now) {
+		t.Fatal("fresh key exceeded")
+	}
+	r.Allow("a", now)
+	r.Allow("a", now)
+	if !r.Exceeded("a", now) || r.Exceeded("b", now) {
+		t.Fatal("wrong exceeded state")
+	}
+	if r.Exceeded("a", now.Add(2*time.Minute)) {
+		t.Fatal("window did not expire")
+	}
+}

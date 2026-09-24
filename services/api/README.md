@@ -74,6 +74,7 @@ All responses are JSON unless noted. Errors: `{"error": "message"}` with a
 | GET | `/api/projects/{project}/llms.txt` | text/plain index of pages |
 | GET | `/api/projects/{project}/llms-full.txt` | text/plain, every page's Markdown |
 | GET | `/api/projects/{project}/page.md?slug=a/b` | text/markdown of one page |
+| GET | `/api/assets/{id}/{name}` | the asset's bytes (immutable cache, `nosniff`, CSP on SVG) |
 | POST | `/api/projects/{project}/feedback` | `{slug, helpful, message?}` → `{ok: true}` (message ≤ 2000 chars; 20 per IP per hour) |
 
 ```ts
@@ -119,6 +120,7 @@ type SearchResult = {
 | POST | `/api/auth/login` | `{email, password}` → `{token, user}` |
 | GET | `/api/auth/me` | → `{user}` |
 | POST | `/api/auth/logout` | → `{ok: true}` (revokes the token) |
+| PUT | `/api/auth/password` | `{current, new}` → `{ok: true}` (new: 8–72 chars) |
 | GET | `/api/admin/projects` | → `Project[]` (all, incl. private) |
 | POST | `/api/admin/projects` | `{slug, name, description, github_url, links, public}` → `Project` |
 | PUT | `/api/admin/projects/{project}` | same fields → `Project` |
@@ -134,6 +136,15 @@ type SearchResult = {
 | POST | `/api/admin/tokens` | `{name}` → `{id, name, token}` (plain token shown once) |
 | DELETE | `/api/admin/tokens/{id}` | → `{ok: true}` |
 | GET | `/api/admin/stats` | → `{projects, pages, tokens}` |
+| GET | `/api/admin/projects/{project}/assets` | → `Asset[]` newest first |
+| POST | `/api/admin/projects/{project}/assets` | multipart `file` (≤ 8 MB; png, jpeg, gif, webp, svg, avif, pdf, txt) → `Asset` (same bytes → existing asset) |
+| DELETE | `/api/admin/projects/{project}/assets/{id}` | → `{ok: true}` |
+| GET | `/api/admin/users` | → `{id, name, email, created_at}[]` |
+| POST | `/api/admin/users` | `{name, email, password}` → user |
+| DELETE | `/api/admin/users/{id}` | → `{ok: true}` (not yourself; revokes their tokens) |
+
+`Asset = {id, name, url, content_type, size, created_at}`; embed it with
+`![name](url)`.
 | GET | `/api/admin/projects/{project}/feedback` | → `{entries: {id, slug, helpful, message, created_at}[], totals: {slug, helpful, not_helpful}[]}` (newest first) |
 | GET | `/api/admin/projects/{project}/pages/{id}/revisions` | → `{id, title, created_at, size}[]` (newest first, last 50 kept) |
 | GET | `/api/admin/projects/{project}/pages/{id}/revisions/{rid}` | → `{id, title, description, body, created_at, size}` |

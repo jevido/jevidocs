@@ -74,6 +74,17 @@ one to see its Markdown or a line diff against what is in the editor, then
 **Restore this version** to bring it back. Restoring is a save too, so the
 version it replaces stays in the history and nothing is lost.
 
+## Assets
+
+The **Assets** tab of a project stores images and files (PNG, JPEG, GIF,
+WebP, SVG, AVIF, PDF and plain text, up to 8 MB each) in the database. Drop
+files on it or choose them, then **Copy Markdown** to get `![name](url)`.
+
+In the page editor you can also paste or drop an image straight into the
+Markdown: it is uploaded and the `![name](url)` is inserted where the cursor
+was. Uploading the same bytes twice reuses the existing asset. Asset URLs
+never change, so they are cached for a year.
+
 ## Feedback
 
 Every docs page ends with "Was this page helpful?". Readers answer with a
@@ -81,6 +92,13 @@ thumbs up or down and can add a message. The **Feedback** tab of a project
 shows a helpful score per page and every answer, newest first; tick "Only
 with a message" to read just the comments. The API accepts at most 20
 answers per IP address per hour.
+
+## Users
+
+**Users** lists everyone who can sign in to the admin; each of them can edit
+every project. Add a user with a name, email and a password of at least 8
+characters, or delete one (their sessions and API tokens stop working). You
+cannot delete yourself. The same page changes your own password.
 
 ## API tokens
 

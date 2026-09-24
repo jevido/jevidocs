@@ -13,5 +13,9 @@ func Migrations() []schema.Migration {
 		&migrations.M20260924000002CreateFeedbackAndRevisions{},
 		&migrations.M20260924000003AddPagesRenderVersion{},
 		&migrations.M20260924000004AddEditURLAndBanner{},
+		&migrations.M20260924000005AddPagesRoot{},
+		&migrations.M20260924000030AddProjectTheme{},
+		&migrations.M20260924000010CreateAssetsTable{},
+		&migrations.M20260924000020CreateAnalyticsTables{},
 	}
 }

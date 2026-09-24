@@ -8,6 +8,7 @@
   import Project from './pages/Project.svelte'
   import PageEditor from './pages/PageEditor.svelte'
   import Tokens from './pages/Tokens.svelte'
+  import Users from './pages/Users.svelte'
 
   let checking = $state(false)
 
@@ -37,6 +38,8 @@
   const section = $derived(
     router.route.name === 'tokens'
       ? 'tokens'
+      : router.route.name === 'users'
+        ? 'users'
       : router.route.name === 'dashboard'
         ? 'dashboard'
         : 'projects',
@@ -65,6 +68,10 @@
         <a href={href('/tokens')} aria-current={section === 'tokens' ? 'page' : undefined}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M17 6l3 3M15 8l2 2" /></svg>
           API tokens
+        </a>
+        <a href={href('/users')} aria-current={section === 'users' ? 'page' : undefined}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4" /><path d="M2 21c0-4 3-6 7-6s7 2 7 6M16 4a4 4 0 0 1 0 8M22 21c0-3-2-5-4-5.5" /></svg>
+          Users
         </a>
       </nav>
       <div class="links">
@@ -99,6 +106,8 @@
         {/key}
       {:else if router.route.name === 'tokens'}
         <Tokens />
+      {:else if router.route.name === 'users'}
+        <Users />
       {:else}
         <div class="empty">
           <h1>Not found</h1>

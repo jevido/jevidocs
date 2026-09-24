@@ -79,3 +79,27 @@ breadcrumbs, and the order of `llms.txt`.
   ]
 }
 ```
+
+## Root folders
+
+Large docs split into areas, like fumadocs' sidebar tabs. Mark a top-level
+folder's index page with `root: true` and the folder becomes a **root**:
+
+````mdx title="api/index.md"
+---
+title: REST API
+description: Every endpoint of the jevidocs API.
+root: true
+icon: code
+---
+````
+
+- A switcher at the top of the sidebar lists the main docs and every root,
+  with each root's description and icon.
+- On a page inside a root, the sidebar shows only that root's tree (its index
+  as "Overview", then its children). Everywhere else it shows the pages
+  outside any root.
+- Search, breadcrumbs and previous/next still span the whole project.
+
+This site uses one: the [REST API](/docs/api) tab, whose reference pages are
+generated from an OpenAPI spec on every start.
