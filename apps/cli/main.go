@@ -6,6 +6,7 @@
 //	jevidocs push   [dir] -project p  upload every .md file (optionally prune)
 //	jevidocs pull   [dir] -project p  download every page as .md files
 //	jevidocs search <query> -project p
+//	jevidocs openapi <spec> -project p [-prefix api-reference]
 //
 // The API address and token come from -api / -token or JEVIDOCS_API /
 // JEVIDOCS_TOKEN. Tokens are created in the admin under "API tokens".
@@ -52,6 +53,8 @@ func main() {
 		err = runPull(args)
 	case "search":
 		err = runSearch(args)
+	case "openapi":
+		err = runOpenAPI(args)
 	case "help", "-h", "--help":
 		usage()
 		return
@@ -74,8 +77,9 @@ Usage:
   jevidocs push   [dir] -project <slug> [-prune]
   jevidocs pull   [dir] -project <slug>
   jevidocs search <query> -project <slug>
+  jevidocs openapi <spec.json|yaml> -project <slug> [-prefix api-reference]
 
-Flags for push, pull and search:
+Flags for push, pull, search and openapi:
   -api    API address (env JEVIDOCS_API, default `+defaultAPI+`)
   -token  API token (env JEVIDOCS_TOKEN; not needed for search)
 `)
@@ -390,5 +394,30 @@ func runInit(args []string) error {
 		fmt.Println("wrote", target)
 	}
 	fmt.Printf("\nNext: create a project in the admin, then\n  JEVIDOCS_TOKEN=... jevidocs push %s -project <slug>\n", dir)
+	return nil
+}
+
+// runOpenAPI generates API reference pages from an OpenAPI 3 document.
+func runOpenAPI(args []string) error {
+	var prefix string
+	c, project, file, err := commonFlags("openapi", args, func(f *flag.FlagSet) {
+		f.StringVar(&prefix, "prefix", "api-reference", "slug prefix for the generated pages")
+	})
+	if err != nil {
+		return err
+	}
+	if project == "" || c.token == "" || file == "" {
+		return errors.New("openapi needs a spec file, -project and a token (-token or JEVIDOCS_TOKEN)")
+	}
+	spec, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	var res struct{ Created, Updated, Unchanged, Deleted int }
+	if err := c.do("POST", "/api/admin/projects/"+url.PathEscape(project)+"/openapi", map[string]any{"spec": string(spec), "prefix": prefix}, &res); err != nil {
+		return err
+	}
+	fmt.Printf("imported %s into %s/%s: %d created, %d updated, %d unchanged, %d deleted\n",
+		file, project, prefix, res.Created, res.Updated, res.Unchanged, res.Deleted)
 	return nil
 }
