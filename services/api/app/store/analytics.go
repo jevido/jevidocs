@@ -61,9 +61,13 @@ func NormalizeQuery(q string) string {
 
 // RecordSearch counts a public search and remembers its last result count.
 // Runs in the background so search latency does not change.
-func RecordSearch(p models.Project, q string, results int) {
+//
+// Unauthenticated, so each address may add at most searchLogLimiter's worth
+// of rows (and goroutines) per hour; beyond that searches still work but are
+// not logged.
+func RecordSearch(p models.Project, q string, results int, ip string) {
 	q = NormalizeQuery(q)
-	if q == "" {
+	if q == "" || !searchLogLimiter.Allow(ip, time.Now()) {
 		return
 	}
 	go func() {
@@ -77,6 +81,8 @@ func RecordSearch(p models.Project, q string, results int) {
 		}
 	}()
 }
+
+var searchLogLimiter = &RateLimiter{Limit: 300, Window: time.Hour}
 
 type DayViews struct {
 	Day   string `json:"day"`

@@ -14,6 +14,10 @@ import (
 	"dev.jevido/jevidocs/services/api/app/models"
 )
 
+// SessionLifetime is how long an admin sign-in lasts. API tokens (kind
+// "api") do not expire; they are revoked in the admin.
+const SessionLifetime = 30 * 24 * time.Hour
+
 // ErrBadCredentials is returned by Login for an unknown email or a wrong
 // password; which of the two is not revealed.
 var ErrBadCredentials = errors.New("invalid email or password")
@@ -45,6 +49,10 @@ func UserForToken(plain string) (models.User, models.ApiToken, error) {
 		return u, t, ErrNotFound
 	}
 	if err := facades.Orm().Query().Where("token_hash", hashToken(plain)).First(&t); err != nil || t.ID == 0 {
+		return u, t, ErrNotFound
+	}
+	if t.Kind == "session" && t.CreatedAt != nil && t.CreatedAt.StdTime().Before(time.Now().Add(-SessionLifetime)) {
+		_, _ = facades.Orm().Query().Delete(&t)
 		return u, t, ErrNotFound
 	}
 	if err := facades.Orm().Query().Where("id", t.UserID).First(&u); err != nil || u.ID == 0 {

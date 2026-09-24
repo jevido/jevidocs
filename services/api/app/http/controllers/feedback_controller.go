@@ -27,7 +27,7 @@ func (r *FeedbackController) Submit(ctx http.Context) http.Response {
 	}
 	// Over the rate limit the answer is dropped, but the reader still sees
 	// "thanks": nothing useful to tell a spammer.
-	if _, err := store.SubmitFeedback(p, in.Slug, in.Helpful, in.Message, ctx.Request().Ip()); err != nil {
+	if _, err := store.SubmitFeedback(p, in.Slug, in.Helpful, in.Message, clientIP(ctx)); err != nil {
 		return fail(ctx, err)
 	}
 	return ok(ctx, http.Json{"ok": true})

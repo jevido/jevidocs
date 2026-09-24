@@ -60,7 +60,7 @@ func (r *DocsController) Search(ctx http.Context) http.Response {
 	if err != nil {
 		return fail(ctx, err)
 	}
-	store.RecordSearch(p, q, len(res))
+	store.RecordSearch(p, q, len(res), clientIP(ctx))
 	return ok(ctx, res)
 }
 

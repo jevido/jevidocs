@@ -23,7 +23,7 @@ func (r *DocsController) Ask(ctx http.Context) http.Response {
 	if err := ctx.Request().Bind(&in); err != nil {
 		return ctx.Response().Json(http.StatusBadRequest, http.Json{"error": "invalid body"})
 	}
-	res, err := store.Ask(ctx, p, in.Question, ctx.Request().Ip())
+	res, err := store.Ask(ctx, p, in.Question, clientIP(ctx))
 	if err != nil {
 		var ve store.ValidationError
 		if errors.As(err, &ve) || errors.Is(err, store.ErrTooManyAttempts) {

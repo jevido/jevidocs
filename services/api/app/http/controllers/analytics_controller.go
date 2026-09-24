@@ -30,7 +30,7 @@ func (r *AnalyticsController) View(ctx http.Context) http.Response {
 	if err != nil || json.Unmarshal(body, &in) != nil {
 		return ctx.Response().Json(http.StatusBadRequest, http.Json{"error": "invalid body"})
 	}
-	if _, err := store.RecordView(p, in.Slug, ctx.Request().Ip(), ctx.Request().Header("User-Agent", "")); err != nil {
+	if _, err := store.RecordView(p, in.Slug, clientIP(ctx), ctx.Request().Header("User-Agent", "")); err != nil {
 		return fail(ctx, err)
 	}
 	return ok(ctx, http.Json{"ok": true})

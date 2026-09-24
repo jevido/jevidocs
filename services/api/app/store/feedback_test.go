@@ -52,3 +52,9 @@ func TestRateLimiterExceededDoesNotRecord(t *testing.T) {
 		t.Fatal("window did not expire")
 	}
 }
+
+func TestLikeEscape(t *testing.T) {
+	if got := likeEscape(`50%_a\\b`); got != `50\%\_a\\\\b` {
+		t.Errorf("likeEscape = %q", got)
+	}
+}

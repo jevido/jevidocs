@@ -176,8 +176,17 @@ func SaveProject(in ProjectInput, existing *models.Project) (models.Project, err
 	return p, err
 }
 
-// DeleteProject removes a project and its pages.
+// projectTables hold rows keyed by project_id that go with the project.
+var projectTables = []string{"page_revisions", "feedback", "page_views", "search_queries", "assets"}
+
+// DeleteProject removes a project, its pages and everything attached to it
+// (assets would otherwise stay publicly reachable by ID).
 func DeleteProject(p models.Project) error {
+	for _, t := range projectTables {
+		if _, err := facades.Orm().Query().Exec(`DELETE FROM `+t+` WHERE project_id = ?`, p.ID); err != nil {
+			return err
+		}
+	}
 	if _, err := facades.Orm().Query().Where("project_id", p.ID).Delete(&models.Page{}); err != nil {
 		return err
 	}

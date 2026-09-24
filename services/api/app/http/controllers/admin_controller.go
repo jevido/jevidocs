@@ -36,7 +36,7 @@ func (r *AdminController) Login(ctx http.Context) http.Response {
 	if err := ctx.Request().Bind(&in); err != nil {
 		return ctx.Response().Json(http.StatusBadRequest, http.Json{"error": "invalid body"})
 	}
-	token, u, err := store.Login(in.Email, in.Password, ctx.Request().Ip())
+	token, u, err := store.Login(in.Email, in.Password, clientIP(ctx))
 	if err != nil {
 		return fail(ctx, err)
 	}

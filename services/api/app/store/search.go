@@ -23,6 +23,9 @@ type SearchResult struct {
 	Fuzzy bool `json:"fuzzy,omitempty"`
 }
 
+// maxQueryLen bounds the text sent to ILIKE and trigram matching.
+const maxQueryLen = 200
+
 // Markers around matches from ts_headline. The snippet is plain text that
 // may contain "<", so it is escaped in Go and only then gets <mark> tags.
 const (
@@ -46,6 +49,9 @@ func terms(q string) []string {
 // Search finds pages by full-text search (every word, prefix matched) and
 // the headings inside them that mention a word.
 func Search(p models.Project, q string, limit int) ([]SearchResult, error) {
+	if r := []rune(q); len(r) > maxQueryLen {
+		q = string(r[:maxQueryLen])
+	}
 	words := terms(q)
 	if len(words) == 0 {
 		return []SearchResult{}, nil
@@ -79,7 +85,7 @@ func Search(p models.Project, q string, limit int) ([]SearchResult, error) {
 		err = facades.Orm().Query().Raw(`
 			SELECT slug, title, sections, left(plain, 180) AS snippet FROM pages
 			WHERE project_id = ? AND published AND (title ILIKE ? OR plain ILIKE ?)
-			ORDER BY position LIMIT 10`, p.ID, "%"+q+"%", "%"+q+"%").Scan(&rows)
+			ORDER BY position LIMIT 10`, p.ID, "%"+likeEscape(q)+"%", "%"+likeEscape(q)+"%").Scan(&rows)
 		if err != nil {
 			return nil, err
 		}
@@ -179,4 +185,10 @@ func markSnippet(s string, words []string) string {
 		i++
 	}
 	return b.String()
+}
+
+// likeEscape makes % and _ in user input match literally in ILIKE (whose
+// default escape character is a backslash).
+func likeEscape(s string) string {
+	return strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(s)
 }
