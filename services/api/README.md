@@ -134,6 +134,8 @@ type SearchResult = {
 | ------ | ---- | -------------- |
 | POST | `/api/auth/login` | `{email, password}` → `{token, user}` |
 | GET | `/api/auth/me` | → `{user}` |
+| POST | `/api/auth/handoff` | → `{code}`: one-minute, single-use code for signing in on the docs site |
+| POST | `/api/auth/handoff/redeem` | `{code}` → `{token, user}` (public; the docs site calls it with `?handoff=`) |
 | POST | `/api/auth/logout` | → `{ok: true}` (revokes the token) |
 | PUT | `/api/auth/password` | `{current, new}` → `{ok: true}` (new: 8–72 chars) |
 | GET | `/api/admin/projects` | → `Project[]` (all, incl. private) |

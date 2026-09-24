@@ -10,7 +10,7 @@ import type {
 } from './types'
 
 export const API_URL: string = (import.meta.env.VITE_API_URL ?? 'https://api.jevidocs.jevido.app').replace(/\/$/, '')
-export const SITE_URL = 'https://jevidocs.jevido.app'
+export const SITE_URL: string = (import.meta.env.VITE_SITE_URL ?? 'https://jevidocs.jevido.app').replace(/\/$/, '')
 
 const TOKEN_KEY = 'jevidocs.admin.token'
 

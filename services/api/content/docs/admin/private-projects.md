@@ -19,8 +19,13 @@ There are three ways in.
 
 ## Signing in on the docs site
 
-The docs site has a **Sign in** button in the navbar. It uses the same
-accounts as the admin. Signed-in readers see the private projects they may
+The docs site and the admin are separate sites, so being signed in to the
+admin does not by itself sign you in on the docs site. Two ways:
+
+- Click **View docs** in the admin. It opens the docs signed in as you
+  (using a one-minute, single-use code in the link).
+- Use the **Sign in** button in the docs navbar. It uses the same accounts
+  as the admin. Signed-in readers see the private projects they may
 read, marked **Private**, including in the [project directory](/p).
 
 ## Members

@@ -62,6 +62,7 @@ tasks:
     dir: ./apps/admin
     env:
       VITE_API_URL: http://127.0.0.1:4730
+      VITE_SITE_URL: http://127.0.0.1:4720
     cmds:
       - bun run dev
 

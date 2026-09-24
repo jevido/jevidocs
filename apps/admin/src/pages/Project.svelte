@@ -1,6 +1,7 @@
 <script lang="ts">
   import { can } from '../lib/roles'
   import { api, publicDocsUrl } from '../lib/api.svelte'
+  import { openDocs } from '../lib/open-docs'
   import { downloadExport } from '../lib/export-api'
   import { go, href } from '../lib/router.svelte'
   import { formatDate } from '../lib/format'
@@ -188,7 +189,8 @@
     href={publicDocsUrl(slug)}
     target="_blank"
     rel="noreferrer"
-    title={form && !form.public ? 'Private: sign in on the docs site with your jevidocs account to read it' : undefined}>
+    onclick={(e) => openDocs(e, slug)}
+    title={form && !form.public ? 'Opens the docs signed in as you' : undefined}>
     View docs ↗
   </a>
   {#if can('editor')}<a class="btn primary" href={href(`/projects/${slug}/pages/new`)}>+ New page</a>{/if}

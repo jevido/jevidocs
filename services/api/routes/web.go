@@ -37,11 +37,13 @@ func Web() {
 
 	admin := controllers.NewAdminController()
 	facades.Route().Post("/api/auth/login", admin.Login)
+	facades.Route().Post("/api/auth/handoff/redeem", admin.RedeemHandoff)
 	assets := controllers.NewAssetController()
 	users := controllers.NewUserController()
 	facades.Route().Get("/api/assets/{id}/{name}", assets.Show)
 	facades.Route().Middleware(middleware.Auth(), middleware.Role()).Group(func(r route.Router) {
 		r.Get("/api/auth/me", admin.Me)
+		r.Post("/api/auth/handoff", admin.Handoff)
 		r.Post("/api/auth/logout", admin.Logout)
 		r.Put("/api/auth/password", users.Password)
 		r.Prefix("/api/admin").Group(func(r route.Router) {

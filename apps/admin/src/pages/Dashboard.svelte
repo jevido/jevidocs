@@ -1,5 +1,6 @@
 <script lang="ts">
   import { api, publicDocsUrl, request } from '../lib/api.svelte'
+  import { openDocs } from '../lib/open-docs'
   import { href } from '../lib/router.svelte'
   import { formatDate } from '../lib/format'
   import type { Project, Stats } from '../lib/types'
@@ -59,7 +60,7 @@
             <td><span class={['badge', p.public && 'ok']}>{p.public ? 'Public' : 'Private'}</span></td>
             <td class="muted">{formatDate(p.updated_at)}</td>
             <td class="right">
-              <a class="btn sm" href={publicDocsUrl(p.slug)} target="_blank" rel="noreferrer">View docs ↗</a>
+              <a class="btn sm" href={publicDocsUrl(p.slug)} target="_blank" rel="noreferrer" onclick={(e) => openDocs(e, p.slug)}>View docs ↗</a>
             </td>
           </tr>
         {/each}

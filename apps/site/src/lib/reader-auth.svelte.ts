@@ -59,6 +59,38 @@ class ReaderAuth {
     this.version++
   }
 
+  // The admin app opens the docs site with ?handoff=<code> (one minute,
+  // single use) so its signed-in user is signed in here too. Takes the code
+  // off the URL either way.
+  async captureHandoff(): Promise<void> {
+    let code: string | null = null
+    try {
+      const url = new URL(location.href)
+      code = url.searchParams.get('handoff')
+      if (!code) return
+      url.searchParams.delete('handoff')
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash)
+    } catch {
+      return
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/auth/handoff/redeem`, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.token) return
+      this.token = data.token
+      this.user = data.user ?? null
+      write(TOKEN_KEY, data.token)
+      write(USER_KEY, data.user ? JSON.stringify(data.user) : null)
+      this.version++
+    } catch {
+      // Network trouble: the reader can still sign in by hand.
+    }
+  }
+
   signOut() {
     const token = this.token
     this.token = null

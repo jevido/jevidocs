@@ -330,3 +330,26 @@ func (r *AdminController) Sync(ctx http.Context) http.Response {
 	}
 	return ok(ctx, res)
 }
+
+// Handoff gives the signed-in admin-app user a one-minute code that signs
+// them in on the docs site (another origin) via POST /api/auth/handoff/redeem.
+func (r *AdminController) Handoff(ctx http.Context) http.Response {
+	code, err := store.IssueHandoff(middleware.User(ctx))
+	if err != nil {
+		return fail(ctx, err)
+	}
+	return ok(ctx, http.Json{"code": code})
+}
+
+// RedeemHandoff trades a handoff code for a docs-site session token.
+func (r *AdminController) RedeemHandoff(ctx http.Context) http.Response {
+	var in struct {
+		Code string `json:"code"`
+	}
+	_ = ctx.Request().Bind(&in)
+	token, u, err := store.RedeemHandoff(in.Code)
+	if err != nil {
+		return ctx.Response().Json(http.StatusUnauthorized, http.Json{"error": "invalid or expired code"})
+	}
+	return ok(ctx, http.Json{"token": token, "user": viewUser(u)})
+}
