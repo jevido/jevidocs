@@ -109,8 +109,8 @@ tasks:
   check:
     desc: Format check, vet, test and type-check every unit
     cmds:
-      - test -z "$(gofmt -l services packages)"
-      - go vet ./services/api/...
+      - test -z "$(gofmt -l services apps/cli packages)"
+      - go vet ./services/api/... ./apps/cli/...
       - go test ./services/api/...
       - bun run --cwd apps/site check
       - bun run --cwd apps/admin check
