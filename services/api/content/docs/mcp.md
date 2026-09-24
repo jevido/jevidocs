@@ -57,6 +57,8 @@ claude mcp add --transport http jevidocs https://api.jevidocs.jevido.app/mcp \
 | `get_page_tree` | `project` | no |
 | `read_page` | `project`, `slug` | no |
 | `search_docs` | `project`, `query` | no |
+| `get_llms_txt` | `project` | no |
+| `list_versions` | `project` | no |
 | `create_page` | `project`, `slug`, `title`, `description?`, `icon?`, `position?`, `section?`, `body`, `published?` | yes |
 | `update_page` | `project`, `slug`, and any field to change | yes |
 | `delete_page` | `project`, `slug` | yes |
@@ -72,6 +74,23 @@ claude mcp add --transport http jevidocs https://api.jevidocs.jevido.app/mcp \
 Every tool calls the same application code as the matching REST route, so
 validation (unique slugs, required titles) is identical.
 </Callout>
+
+## Resources
+
+Pages are also MCP resources, read through two templates (a client learns
+the slugs from `list_projects` and `get_page_tree`):
+
+| URI | Returns |
+| --- | ------- |
+| `jevidocs://{project}/{slug}` | The page's Markdown (`text/markdown`); `index` is the home page |
+| `jevidocs://{project}/llms.txt` | The project's `llms.txt` |
+
+## Prompts
+
+| Prompt | Arguments | What it does |
+| ------ | --------- | ------------ |
+| `summarize_page` | `project`, `slug` | Summarise one page in a few bullets |
+| `write_page` | `project`, `topic` | Draft a page in jevidocs' Markdown dialect, check the tree and related pages, then `create_page` |
 
 ## Example prompts
 

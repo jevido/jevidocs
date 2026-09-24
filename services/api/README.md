@@ -74,6 +74,7 @@ All responses are JSON unless noted. Errors: `{"error": "message"}` with a
 | GET | `/api/projects/{project}/llms.txt` | text/plain index of pages |
 | GET | `/api/projects/{project}/llms-full.txt` | text/plain, every page's Markdown |
 | GET | `/api/projects/{project}/page.md?slug=a/b` | text/markdown of one page |
+| POST | `/api/projects/{project}/ask` | `{question}` → `{answer, sources: {title, url}[]}`; 404 when Ask AI is off (no `ANTHROPIC_API_KEY`) |
 | POST | `/api/hooks/github/{project}` | GitHub push webhook (HMAC `X-Hub-Signature-256` with the project's source secret) → 202 |
 | GET | `/api/assets/{id}/{name}` | the asset's bytes (immutable cache, `nosniff`, CSP on SVG) |
 | POST | `/api/projects/{project}/views` | `{slug}` (any content type, parsed as JSON) → `{ok: true}`; bots, unknown pages and >300/h per IP are ignored |
@@ -208,7 +209,8 @@ The server emits final HTML; clients only style it and attach behaviour.
 
 Streamable HTTP at `/mcp`, stateless, JSON responses. Tools:
 
-- `list_projects`, `get_page_tree`, `read_page`, `search_docs`: public.
+- `list_projects`, `get_page_tree`, `read_page`, `search_docs`, `get_llms_txt`, `list_versions`: public.
+- Resource templates `jevidocs://{project}/{slug}` (page Markdown) and `jevidocs://{project}/llms.txt`; prompts `summarize_page`, `write_page`.
 - `create_page`, `update_page`, `delete_page`: need `Authorization: Bearer
   <token>` from an admin API token.
 

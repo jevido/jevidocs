@@ -49,6 +49,8 @@ type ProjectView struct {
 	UpdatedAt    string        `json:"updated_at"`
 	Tree         *docs.Tree    `json:"tree,omitempty"`
 	Versions     []VersionLink `json:"versions,omitempty"`
+	// Ask is true when Ask AI is enabled on this API.
+	Ask bool `json:"ask"`
 }
 
 func ViewProject(p models.Project) ProjectView {

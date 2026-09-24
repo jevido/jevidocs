@@ -58,7 +58,8 @@ Coolify environment variables on jevidocs-api (runtime only): `APP_KEY` (32
 characters), `APP_NAME`, `APP_URL`, `SITE_URL`, `ADMIN_EMAIL`,
 `ADMIN_PASSWORD`, and `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` /
 `DB_PASSWORD` for jevidocs-db (host is the database's UUID on Coolify's
-internal network). The site and admin images take `VITE_API_URL` as a build
+internal network). Optional: `GITHUB_TOKEN` (sync private repos),
+`ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` (turn on Ask AI). The site and admin images take `VITE_API_URL` as a build
 argument, defaulting to the production API.
 
 ## Database

@@ -60,6 +60,11 @@ func init() {
 		// in search results, llms.txt and MCP answers.
 		"site_url": config.Env("SITE_URL", "https://jevidocs.jevido.app"),
 
+		// Ask AI in the docs reader; off unless a key is set.
+		"anthropic_key":      config.Env("ANTHROPIC_API_KEY", ""),
+		"anthropic_model":    config.Env("ANTHROPIC_MODEL", "claude-opus-5-5"),
+		"anthropic_base_url": config.Env("ANTHROPIC_BASE_URL", ""),
+
 		// The first admin, created on start when no user exists.
 		"admin_email":    config.Env("ADMIN_EMAIL", ""),
 		"admin_password": config.Env("ADMIN_PASSWORD", ""),

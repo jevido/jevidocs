@@ -27,6 +27,7 @@ func Web() {
 		r.Get("/{project}/llms.txt", docs.LLMs)
 		r.Get("/{project}/llms-full.txt", docs.LLMsFull)
 		r.Get("/{project}/sitemap.xml", docs.Sitemap)
+		r.Post("/{project}/ask", docs.Ask)
 		r.Post("/{project}/feedback", feedback.Submit)
 		r.Post("/{project}/views", analytics.View)
 	})

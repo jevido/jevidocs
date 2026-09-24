@@ -31,6 +31,7 @@ func (r *DocsController) Project(ctx http.Context) http.Response {
 	}
 	v := store.ViewProject(p)
 	v.Tree = &tree
+	v.Ask = store.AskEnabled()
 	if v.Versions, err = store.Versions(p); err != nil {
 		return fail(ctx, err)
 	}

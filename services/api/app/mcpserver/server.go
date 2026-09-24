@@ -19,11 +19,15 @@ func New() *mcp.Server {
 	}, &mcp.ServerOptions{
 		Instructions: "jevidocs hosts documentation sites. Use list_projects to find a project, " +
 			"get_page_tree for its structure, search_docs to find pages, and read_page for a page's Markdown. " +
+			"Pages are also resources: jevidocs://{project}/{slug} and jevidocs://{project}/llms.txt. " +
 			"create_page, update_page and delete_page need an admin API token as a Bearer token.",
 	})
 
 	registerPing(server)
 	registerDocsTools(server)
+	registerMoreTools(server)
+	registerResources(server)
+	registerPrompts(server)
 
 	return server
 }
