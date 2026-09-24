@@ -1,0 +1,366 @@
+// Package store is the application layer over the database: projects, pages,
+// search, llms.txt. REST controllers and MCP tools both call it, so a tool
+// and its route cannot drift apart in validation.
+package store
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"regexp"
+	"strings"
+
+	"dev.jevido/jevidocs/services/api/app/docs"
+	"dev.jevido/jevidocs/services/api/app/facades"
+	"dev.jevido/jevidocs/services/api/app/models"
+)
+
+// ErrNotFound is returned when a project or page does not exist (or is not
+// visible to the caller).
+var ErrNotFound = errors.New("not found")
+
+// ValidationError is a problem with the caller's input.
+type ValidationError struct{ Msg string }
+
+func (e ValidationError) Error() string { return e.Msg }
+
+// SelfProject is the project holding jevidocs' own documentation.
+const SelfProject = "jevidocs"
+
+type Link struct {
+	Text string `json:"text"`
+	URL  string `json:"url"`
+}
+
+type ProjectView struct {
+	Slug        string     `json:"slug"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	GithubURL   string     `json:"github_url"`
+	Links       []Link     `json:"links"`
+	Public      bool       `json:"public"`
+	Managed     bool       `json:"managed"`
+	UpdatedAt   string     `json:"updated_at"`
+	Tree        *docs.Tree `json:"tree,omitempty"`
+}
+
+func ViewProject(p models.Project) ProjectView {
+	links := []Link{}
+	_ = json.Unmarshal([]byte(p.Links), &links)
+	v := ProjectView{Slug: p.Slug, Name: p.Name, Description: p.Description, GithubURL: p.GithubURL,
+		Links: links, Public: p.Public, Managed: p.Managed}
+	if p.UpdatedAt != nil {
+		v.UpdatedAt = p.UpdatedAt.ToIso8601String()
+	}
+	return v
+}
+
+// ListProjects returns projects, only public ones unless all is set.
+func ListProjects(all bool) ([]ProjectView, error) {
+	var ps []models.Project
+	q := facades.Orm().Query().Order("name asc")
+	if !all {
+		q = q.Where("public", true)
+	}
+	if err := q.Get(&ps); err != nil {
+		return nil, err
+	}
+	out := make([]ProjectView, 0, len(ps))
+	for _, p := range ps {
+		out = append(out, ViewProject(p))
+	}
+	return out, nil
+}
+
+// FindProject loads a project by slug. Private projects need all.
+func FindProject(slug string, all bool) (models.Project, error) {
+	var p models.Project
+	if err := facades.Orm().Query().Where("slug", strings.ToLower(slug)).First(&p); err != nil {
+		return p, err
+	}
+	if p.ID == 0 || (!p.Public && !all) {
+		return p, ErrNotFound
+	}
+	return p, nil
+}
+
+var slugRe = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+
+type ProjectInput struct {
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	GithubURL   string `json:"github_url"`
+	Links       []Link `json:"links"`
+	Public      *bool  `json:"public"`
+}
+
+// SaveProject creates (existing == nil) or updates a project.
+func SaveProject(in ProjectInput, existing *models.Project) (models.Project, error) {
+	var p models.Project
+	if existing != nil {
+		p = *existing
+	} else {
+		p.Public = true
+	}
+	in.Slug = strings.ToLower(strings.TrimSpace(in.Slug))
+	if existing == nil || in.Slug != "" {
+		if !slugRe.MatchString(in.Slug) || len(in.Slug) > 64 {
+			return p, ValidationError{"slug must be lowercase letters, digits and dashes"}
+		}
+		if in.Slug != p.Slug {
+			var other models.Project
+			_ = facades.Orm().Query().Where("slug", in.Slug).First(&other)
+			if other.ID != 0 {
+				return p, ValidationError{"a project with that slug already exists"}
+			}
+		}
+		p.Slug = in.Slug
+	}
+	if strings.TrimSpace(in.Name) == "" {
+		return p, ValidationError{"name is required"}
+	}
+	p.Name = strings.TrimSpace(in.Name)
+	p.Description = strings.TrimSpace(in.Description)
+	p.GithubURL = strings.TrimSpace(in.GithubURL)
+	if in.Links == nil {
+		in.Links = []Link{}
+	}
+	var links []Link
+	for _, l := range in.Links {
+		if strings.TrimSpace(l.Text) != "" && strings.TrimSpace(l.URL) != "" {
+			links = append(links, Link{strings.TrimSpace(l.Text), strings.TrimSpace(l.URL)})
+		}
+	}
+	if links == nil {
+		links = []Link{}
+	}
+	b, _ := json.Marshal(links)
+	p.Links = string(b)
+	if in.Public != nil {
+		p.Public = *in.Public
+	}
+	var err error
+	if existing == nil {
+		err = facades.Orm().Query().Create(&p)
+	} else {
+		err = facades.Orm().Query().Save(&p)
+	}
+	return p, err
+}
+
+// DeleteProject removes a project and its pages.
+func DeleteProject(p models.Project) error {
+	if _, err := facades.Orm().Query().Where("project_id", p.ID).Delete(&models.Page{}); err != nil {
+		return err
+	}
+	_, err := facades.Orm().Query().Delete(&p)
+	return err
+}
+
+func pagesOf(p models.Project, published bool) ([]models.Page, error) {
+	var pages []models.Page
+	q := facades.Orm().Query().Select("id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "created_at", "updated_at").
+		Where("project_id", p.ID)
+	if published {
+		q = q.Where("published", true)
+	}
+	err := q.Order("slug asc").Get(&pages)
+	return pages, err
+}
+
+// Tree builds the sidebar tree of a project's published pages.
+func Tree(p models.Project) (docs.Tree, error) {
+	pages, err := pagesOf(p, true)
+	if err != nil {
+		return docs.Tree{}, err
+	}
+	metas := make([]docs.PageMeta, 0, len(pages))
+	for _, pg := range pages {
+		metas = append(metas, docs.PageMeta{Slug: pg.Slug, Title: pg.Title, Icon: pg.Icon, Position: pg.Position, Section: pg.Section})
+	}
+	return docs.BuildTree(p.Name, metas), nil
+}
+
+type PageView struct {
+	Slug        string         `json:"slug"`
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	Icon        string         `json:"icon"`
+	HTML        string         `json:"html"`
+	Toc         []docs.TocItem `json:"toc"`
+	Breadcrumbs []docs.Crumb   `json:"breadcrumbs"`
+	Previous    *docs.Link     `json:"previous"`
+	Next        *docs.Link     `json:"next"`
+	Markdown    string         `json:"markdown"`
+	URL         string         `json:"url"`
+	UpdatedAt   string         `json:"updated_at"`
+}
+
+// FindPage loads one published page by slug.
+func FindPage(p models.Project, slug string) (models.Page, error) {
+	var pg models.Page
+	err := facades.Orm().Query().Where("project_id", p.ID).Where("slug", docs.NormalizeSlug(slug)).Where("published", true).First(&pg)
+	if err == nil && pg.ID == 0 {
+		err = ErrNotFound
+	}
+	return pg, err
+}
+
+// ViewPage is a page with everything the reader needs around it.
+func ViewPage(p models.Project, slug string) (PageView, error) {
+	pg, err := FindPage(p, slug)
+	if err != nil {
+		return PageView{}, err
+	}
+	tree, err := Tree(p)
+	if err != nil {
+		return PageView{}, err
+	}
+	v := PageView{Slug: pg.Slug, Title: pg.Title, Description: pg.Description, Icon: pg.Icon, HTML: pg.HTML,
+		Markdown: pg.Body, URL: PageURL(p, pg.Slug), Toc: []docs.TocItem{}}
+	_ = json.Unmarshal([]byte(pg.Toc), &v.Toc)
+	v.Breadcrumbs = tree.Breadcrumbs(pg.Slug, pg.Title)
+	v.Previous, v.Next = tree.Neighbours(pg.Slug)
+	if pg.UpdatedAt != nil {
+		v.UpdatedAt = pg.UpdatedAt.ToIso8601String()
+	}
+	return v, nil
+}
+
+// SiteURL is where the docs reader is served.
+func SiteURL() string {
+	return strings.TrimRight(facades.Config().GetString("app.site_url", "https://jevidocs.jevido.app"), "/")
+}
+
+// PageURL is the public address of a page in the docs reader.
+func PageURL(p models.Project, slug string) string {
+	base := SiteURL() + "/p/" + p.Slug
+	if p.Slug == SelfProject {
+		base = SiteURL() + "/docs"
+	}
+	if slug == "" {
+		return base
+	}
+	return base + "/" + slug
+}
+
+type PageInput struct {
+	Slug        string `json:"slug"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Icon        string `json:"icon"`
+	Position    int    `json:"position"`
+	Section     string `json:"section"`
+	Published   *bool  `json:"published"`
+	Body        string `json:"body"`
+}
+
+var pageSlugRe = regexp.MustCompile(`^(?:[a-z0-9][a-z0-9._-]*)(?:/[a-z0-9][a-z0-9._-]*)*$`)
+
+// SavePage validates and renders a page, then creates (existing == nil) or
+// updates it.
+func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Page, error) {
+	var pg models.Page
+	if existing != nil {
+		pg = *existing
+	} else {
+		pg.ProjectID = p.ID
+		pg.Published = true
+	}
+	slug := docs.NormalizeSlug(in.Slug)
+	if slug != "" && !pageSlugRe.MatchString(slug) {
+		return pg, ValidationError{"slug must be a path of lowercase segments, like guides/install (empty for the index)"}
+	}
+	if existing == nil || slug != pg.Slug {
+		var other models.Page
+		_ = facades.Orm().Query().Where("project_id", p.ID).Where("slug", slug).First(&other)
+		if other.ID != 0 {
+			return pg, ValidationError{fmt.Sprintf("a page with slug %q already exists", slug)}
+		}
+	}
+	fm, body := docs.SplitFrontMatter(in.Body)
+	title := firstNonEmpty(in.Title, fm.Title)
+	if title == "" {
+		return pg, ValidationError{"title is required"}
+	}
+	r, err := docs.Render(body)
+	if err != nil {
+		return pg, err
+	}
+	pg.Slug, pg.Title = slug, title
+	pg.Description = firstNonEmpty(in.Description, fm.Description)
+	pg.Icon = firstNonEmpty(in.Icon, fm.Icon)
+	pg.Section = firstNonEmpty(in.Section, fm.Section)
+	pg.Position = in.Position
+	if in.Position == 0 && fm.HasPosition {
+		pg.Position = fm.Position
+	}
+	if in.Published != nil {
+		pg.Published = *in.Published
+	}
+	pg.Body = body
+	pg.HTML = r.HTML
+	pg.Plain = r.Plain
+	toc, _ := json.Marshal(nonNil(r.Toc))
+	pg.Toc = string(toc)
+	secs, _ := json.Marshal(nonNil(r.Sections))
+	pg.Sections = string(secs)
+	if existing == nil {
+		err = facades.Orm().Query().Create(&pg)
+	} else {
+		err = facades.Orm().Query().Save(&pg)
+	}
+	if err == nil {
+		touch(p)
+	}
+	return pg, err
+}
+
+func touch(p models.Project) {
+	_, _ = facades.Orm().Query().Exec(`UPDATE projects SET updated_at = now() WHERE id = ?`, p.ID)
+}
+
+func nonNil[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+
+func firstNonEmpty(v ...string) string {
+	for _, s := range v {
+		if s = strings.TrimSpace(s); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+// AdminPages lists every page of a project, including unpublished ones.
+func AdminPages(p models.Project) ([]models.Page, error) { return pagesOf(p, false) }
+
+// FindPageByID loads any page of a project by ID.
+func FindPageByID(p models.Project, id uint) (models.Page, error) {
+	var pg models.Page
+	err := facades.Orm().Query().Where("project_id", p.ID).Where("id", id).First(&pg)
+	if err == nil && pg.ID == 0 {
+		err = ErrNotFound
+	}
+	return pg, err
+}
+
+// DeletePage removes a page.
+func DeletePage(p models.Project, pg models.Page) error {
+	_, err := facades.Orm().Query().Delete(&pg)
+	if err == nil {
+		touch(p)
+	}
+	return err
+}
+
+// Preview renders Markdown without saving it.
+func Preview(body string) (docs.Rendered, error) {
+	_, b := docs.SplitFrontMatter(body)
+	return docs.Render(b)
+}
