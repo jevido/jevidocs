@@ -9,6 +9,7 @@ export type Project = {
   github_url: string
   links: Link[] | null
   public: boolean
+  banner?: string
   updated_at: string
 }
 
@@ -41,6 +42,7 @@ export type Page = {
   previous: { title: string; slug: string } | null
   next: { title: string; slug: string } | null
   markdown: string
+  edit_url?: string
   updated_at: string
 }
 

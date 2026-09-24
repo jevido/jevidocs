@@ -9,10 +9,13 @@ export type Project = {
   github_url: string
   links: Link[]
   public: boolean
+  edit_url: string
+  banner: string
+  managed?: boolean
   updated_at: string
 }
 
-export type ProjectInput = Omit<Project, 'updated_at'>
+export type ProjectInput = Omit<Project, 'updated_at' | 'managed'>
 
 export type AdminPageInput = {
   slug: string

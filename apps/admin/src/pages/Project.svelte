@@ -11,6 +11,7 @@
   let { slug }: { slug: string } = $props()
 
   let form = $state<ProjectInput | null>(null)
+  let managed = $state(false)
   let pages = $state.raw<AdminPage[]>([])
   let tab = $state<'pages' | 'feedback' | 'settings'>('pages')
   let busy = $state(false)
@@ -29,7 +30,10 @@
           github_url: p.github_url,
           links: (p.links ?? []).map((l) => ({ ...l })),
           public: p.public,
+          edit_url: p.edit_url ?? '',
+          banner: p.banner ?? '',
         }
+        managed = !!p.managed
       })
       .catch(toast.error)
     api
@@ -112,6 +116,13 @@
   <a class="btn" href={publicDocsUrl(slug)} target="_blank" rel="noreferrer">View docs ↗</a>
   <a class="btn primary" href={href(`/projects/${slug}/pages/new`)}>+ New page</a>
 </div>
+
+{#if managed}
+  <p class="managed-note" role="note">
+    This project is synced from files in the repository on every API start. Edits made here are overwritten by
+    the next deploy; change <code>services/api/content/docs</code> instead.
+  </p>
+{/if}
 
 <div class="tabs" role="tablist">
   <button role="tab" aria-selected={tab === 'pages'} onclick={() => (tab = 'pages')}>Pages <span class="badge">{pages.length}</span></button>
@@ -253,5 +264,13 @@
   }
   .danger-zone p {
     margin: 0.25rem 0 0;
+  }
+  .managed-note {
+    margin: 0 0 1rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid color-mix(in oklab, orange 40%, var(--border));
+    background: color-mix(in oklab, orange 10%, transparent);
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
   }
 </style>

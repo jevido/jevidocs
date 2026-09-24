@@ -40,6 +40,15 @@
     GitHub URL
     <input type="url" placeholder="https://github.com/you/repo" bind:value={value.github_url} />
   </label>
+  <label class="field wide">
+    Edit URL
+    <input type="text" placeholder="https://github.com/you/repo/blob/main/docs/{'{path}'}" bind:value={value.edit_url} />
+    <span class="hint">"Edit this page" link. <code>{'{path}'}</code> becomes the page's file, e.g. <code>guides/index.md</code>.</span>
+  </label>
+  <label class="field wide">
+    Banner
+    <input type="text" placeholder="Announcement shown above every page" bind:value={value.banner} />
+  </label>
   <div class="field wide">
     <span>Navbar links</span>
     {#each value.links as link, i (i)}

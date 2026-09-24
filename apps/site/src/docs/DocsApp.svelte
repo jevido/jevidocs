@@ -94,6 +94,9 @@
   const toc = $derived(page?.toc ?? [])
 </script>
 
+{#if project?.banner}
+  <div class="banner" role="note">{project.banner}</div>
+{/if}
 <Navbar {project} onsearch={() => (searchOpen = true)} onmenu={() => (drawerOpen = true)} />
 
 {#if route.project}
@@ -189,7 +192,15 @@
 
         <footer class="page-foot">
           <Feedback project={route.project} slug={page.slug} />
-          {#if updated}<p class="updated">Last updated on {updated}</p>{/if}
+          <div class="meta-row">
+            {#if page.edit_url}
+              <a class="edit" href={page.edit_url} target="_blank" rel="noreferrer">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                Edit this page
+              </a>
+            {/if}
+            {#if updated}<p class="updated">Last updated on {updated}</p>{/if}
+          </div>
           {#if page.previous || page.next}
             <div class="pager">
               {#if page.previous}
@@ -392,4 +403,28 @@
     .pager { grid-template-columns: 1fr; }
     .card.next { grid-column: 1; }
   }
+  .banner {
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    background: color-mix(in oklab, var(--brand) 14%, var(--bg));
+    border-bottom: 1px solid var(--border);
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+  .meta-row .updated { margin: 0; }
+  .edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--muted-fg);
+    text-decoration: none;
+  }
+  .edit:hover { color: var(--fg); }
 </style>
