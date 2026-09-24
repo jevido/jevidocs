@@ -13,9 +13,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/alecthomas/chroma/v2"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -29,7 +27,7 @@ import (
 
 // RenderVersion changes whenever the output of Render changes for the same
 // input. Stored pages from an older version are re-rendered on start.
-const RenderVersion = 2
+const RenderVersion = 3
 
 // TocItem is one heading in a page's table of contents.
 type TocItem struct {
@@ -62,6 +60,7 @@ type FrontMatter struct {
 	Section     string
 	Position    int
 	HasPosition bool
+	Root        bool
 }
 
 // SplitFrontMatter separates a leading `---` block from the body. Values are
@@ -99,6 +98,8 @@ func SplitFrontMatter(src string) (FrontMatter, string) {
 			fm.Icon = v
 		case "section":
 			fm.Section = v
+		case "root":
+			fm.Root = v == "true" || v == "yes"
 		case "position", "order":
 			if n, err := strconv.Atoi(v); err == nil {
 				fm.Position, fm.HasPosition = n, true
@@ -110,7 +111,7 @@ func SplitFrontMatter(src string) (FrontMatter, string) {
 
 var md = goldmark.New(
 	goldmark.WithExtensions(extension.GFM, extension.Footnote),
-	goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+	goldmark.WithParserOptions(parser.WithAutoHeadingID(), parser.WithASTTransformers(util.Prioritized(alertTransformer{}, 100))),
 	goldmark.WithRendererOptions(
 		// Components expand to raw HTML (components.go). Page bodies are
 		// written by admins with a token, the same trust as the site itself.
@@ -242,6 +243,8 @@ type docsRenderer struct{}
 func (r *docsRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindHeading, r.heading)
 	reg.Register(ast.KindFencedCodeBlock, r.fencedCode)
+	reg.Register(ast.KindBlockquote, r.blockquote)
+	reg.Register(ast.KindImage, r.image)
 }
 
 func (r *docsRenderer) heading(w util.BufWriter, src []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -271,57 +274,84 @@ func (r *docsRenderer) fencedCode(w util.BufWriter, src []byte, n ast.Node, ente
 		return ast.WalkContinue, nil
 	}
 	fc := n.(*ast.FencedCodeBlock)
-	lang, title := "", ""
+	info := ""
 	if fc.Info != nil {
-		info := string(fc.Info.Segment.Value(src))
-		lang, _, _ = strings.Cut(strings.TrimSpace(info), " ")
-		if strings.HasPrefix(lang, "title=") {
-			lang = ""
-		}
-		for _, m := range metaAttrRe.FindAllStringSubmatch(info, -1) {
-			if m[1] == "title" {
-				title = m[2] + m[3] + m[4]
-			}
-		}
+		info = string(fc.Info.Segment.Value(src))
 	}
+	meta := parseCodeMeta(info)
 	var code bytes.Buffer
 	for i := 0; i < fc.Lines().Len(); i++ {
 		seg := fc.Lines().At(i)
 		code.Write(seg.Value(src))
 	}
 
-	fmt.Fprintf(w, `<figure class="fd-codeblock" data-lang="%s">`, html.EscapeString(lang))
-	if title != "" {
-		fmt.Fprintf(w, `<figcaption class="fd-codeblock-title">%s</figcaption>`, html.EscapeString(title))
+	// Diagrams are drawn in the browser (apps/site loads Mermaid lazily).
+	if strings.EqualFold(meta.lang, "mermaid") {
+		fmt.Fprintf(w, "<div class=\"fd-mermaid\"><pre class=\"fd-mermaid-src\">%s</pre></div>\n", html.EscapeString(code.String()))
+		return ast.WalkSkipChildren, nil
+	}
+
+	fmt.Fprintf(w, `<figure class="fd-codeblock" data-lang="%s"`, html.EscapeString(meta.lang))
+	if meta.lineNumbers {
+		_, _ = w.WriteString(` data-line-numbers`)
+	}
+	if hasFocus(meta.lang, code.String()) {
+		_, _ = w.WriteString(` data-has-focus`)
+	}
+	_ = w.WriteByte('>')
+	if meta.title != "" {
+		fmt.Fprintf(w, `<figcaption class="fd-codeblock-title">%s</figcaption>`, html.EscapeString(meta.title))
 	}
 	_, _ = w.WriteString(`<pre class="chroma"><code>`)
-	if err := highlight(w, lang, code.String()); err != nil {
-		_, _ = w.WriteString(html.EscapeString(code.String()))
-	}
+	writeCode(w, meta, code.String())
 	_, _ = w.WriteString("</code></pre></figure>\n")
+	return ast.WalkSkipChildren, nil
+}
+
+// blockquote renders GitHub alerts (tagged by alertTransformer) as callouts.
+func (r *docsRenderer) blockquote(w util.BufWriter, src []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	kind := ""
+	if v, ok := n.AttributeString("data-alert"); ok {
+		kind = string(asBytes(v))
+	}
+	if kind == "" {
+		if entering {
+			_, _ = w.WriteString("<blockquote>\n")
+		} else {
+			_, _ = w.WriteString("</blockquote>\n")
+		}
+		return ast.WalkContinue, nil
+	}
+	if entering {
+		fmt.Fprintf(w, `<div class="fd-callout" data-type="%s"><div class="fd-callout-title">%s</div><div class="fd-callout-body">`+"\n", alertTypes[kind], alertTitles[kind])
+	} else {
+		_, _ = w.WriteString("</div></div>\n")
+	}
+	return ast.WalkContinue, nil
+}
+
+// image adds lazy loading; the site zooms images on click.
+func (r *docsRenderer) image(w util.BufWriter, src []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	img := n.(*ast.Image)
+	_, _ = w.WriteString(`<img src="`)
+	_, _ = w.Write(util.EscapeHTML(util.URLEscape(img.Destination, true)))
+	_, _ = w.WriteString(`" alt="`)
+	_, _ = w.WriteString(html.EscapeString(nodeText(img, src)))
+	_ = w.WriteByte('"')
+	if len(img.Title) > 0 {
+		_, _ = w.WriteString(` title="`)
+		_, _ = w.Write(util.EscapeHTML(img.Title))
+		_ = w.WriteByte('"')
+	}
+	_, _ = w.WriteString(` loading="lazy" decoding="async">`)
 	return ast.WalkSkipChildren, nil
 }
 
 // langAliases maps fence languages Chroma does not know to close relatives.
 var langAliases = map[string]string{"mdx": "markdown", "md": "markdown", "svelte": "html", "vue": "html", "env": "bash", "sh": "bash", "shell": "bash", "console": "bash"}
-
-func highlight(w util.BufWriter, lang, code string) error {
-	var lexer chroma.Lexer
-	if alias, ok := langAliases[strings.ToLower(lang)]; ok {
-		lang = alias
-	}
-	if lang != "" {
-		lexer = lexers.Get(lang)
-	}
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-	it, err := chroma.Coalesce(lexer).Tokenise(nil, code)
-	if err != nil {
-		return err
-	}
-	return formatter.Format(w, styles.Fallback, it)
-}
 
 // ChromaCSS returns the stylesheet for the highlight classes in one style,
 // for clients that want the exact Chroma palette.

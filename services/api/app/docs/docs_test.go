@@ -112,3 +112,41 @@ func TestSectionTextKeepsInlinePunctuation(t *testing.T) {
 		t.Errorf("text = %q", got)
 	}
 }
+
+func TestGitHubAlert(t *testing.T) {
+	r, _ := Render("> [!WARNING]\n> Back up **first**.\n\n> plain quote\n")
+	if !strings.Contains(r.HTML, `<div class="fd-callout" data-type="warn"><div class="fd-callout-title">Warning</div>`) ||
+		!strings.Contains(r.HTML, "<strong>first</strong>") || strings.Contains(r.HTML, "[!WARNING]") {
+		t.Errorf("alert html:\n%s", r.HTML)
+	}
+	if !strings.Contains(r.HTML, "<blockquote>") {
+		t.Errorf("plain quote lost:\n%s", r.HTML)
+	}
+}
+
+func TestCodeLineFeatures(t *testing.T) {
+	r, _ := Render("```ts {2} lineNumbers\nconst a = 1 // [!code ++]\nconst b = 2\nconst c = 3 // [!code focus]\n```\n")
+	for _, want := range []string{
+		`data-line-numbers`, `data-has-focus`,
+		`<span class="line" data-diff="add">`,
+		`<span class="line" data-highlighted>`,
+		`<span class="line" data-focus>`,
+	} {
+		if !strings.Contains(r.HTML, want) {
+			t.Errorf("missing %q in\n%s", want, r.HTML)
+		}
+	}
+	if strings.Contains(r.HTML, "[!code") {
+		t.Errorf("notation not stripped:\n%s", r.HTML)
+	}
+}
+
+func TestMermaidAndLazyImages(t *testing.T) {
+	r, _ := Render("```mermaid\ngraph TD; A-->B\n```\n\n![alt text](/a.png \"T\")\n")
+	if !strings.Contains(r.HTML, `<div class="fd-mermaid"><pre class="fd-mermaid-src">graph TD; A--&gt;B`) {
+		t.Errorf("mermaid:\n%s", r.HTML)
+	}
+	if !strings.Contains(r.HTML, `<img src="/a.png" alt="alt text" title="T" loading="lazy"`) {
+		t.Errorf("image:\n%s", r.HTML)
+	}
+}

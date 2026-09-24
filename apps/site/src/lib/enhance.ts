@@ -50,6 +50,7 @@ export function enhance(root: HTMLElement) {
     btn.innerHTML = copyIcon
     fig.append(btn)
   }
+  renderMermaid(root)
   for (const tabs of root.querySelectorAll<HTMLElement>('.fd-tabs')) {
     const triggers = tabs.querySelectorAll<HTMLElement>(':scope > .fd-tabs-list > .fd-tab-trigger')
     if (triggers.length && ![...triggers].some((t) => t.hasAttribute('data-active'))) {
@@ -83,6 +84,11 @@ export function onContentClick(e: MouseEvent) {
     if (tabs) select(tabs, trigger.dataset.tab ?? '')
     return
   }
+  const img = target?.closest<HTMLImageElement>('img')
+  if (img && !img.closest('a')) {
+    zoom(img)
+    return
+  }
   const copy = target?.closest<HTMLButtonElement>('.fd-copy')
   if (copy) {
     const code = copy.parentElement?.querySelector('pre code, pre')
@@ -97,4 +103,87 @@ export function onContentClick(e: MouseEvent) {
       }, 1500)
     })
   }
+}
+
+// ---- Mermaid ---------------------------------------------------------------
+// ```mermaid fences arrive as <div class="fd-mermaid"><pre class="fd-mermaid-src">.
+// Mermaid (large) is only fetched when a page has a diagram, and diagrams
+// are redrawn when the theme flips. On any error the source stays visible.
+
+type Mermaid = {
+  initialize(c: Record<string, unknown>): void
+  render(id: string, src: string): Promise<{ svg: string }>
+}
+
+const MERMAID_URL = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+let mermaid: Promise<Mermaid> | null = null
+let diagramSeq = 0
+let observing = false
+
+function loadMermaid(): Promise<Mermaid> {
+  mermaid ??= import(/* @vite-ignore */ MERMAID_URL).then((m) => m.default as Mermaid)
+  return mermaid
+}
+
+const isDark = () => document.documentElement.classList.contains('dark')
+
+async function renderMermaid(root: ParentNode) {
+  const blocks = [...root.querySelectorAll<HTMLElement>('.fd-mermaid')]
+  if (!blocks.length) return
+  watchTheme()
+  try {
+    const m = await loadMermaid()
+    const dark = isDark()
+    m.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict', fontFamily: 'inherit' })
+    for (const block of blocks) {
+      const src = block.querySelector('.fd-mermaid-src')?.textContent ?? ''
+      if (!src.trim() || block.dataset.theme === String(dark)) continue
+      try {
+        const { svg } = await m.render(`fd-mermaid-${++diagramSeq}`, src)
+        block.querySelector('.fd-mermaid-svg')?.remove()
+        const holder = document.createElement('div')
+        holder.className = 'fd-mermaid-svg'
+        holder.innerHTML = svg
+        block.prepend(holder)
+        block.dataset.rendered = ''
+        block.dataset.theme = String(dark)
+      } catch {
+        delete block.dataset.rendered
+      }
+    }
+  } catch {
+    // Offline or blocked CDN: the source stays readable.
+  }
+}
+
+function watchTheme() {
+  if (observing) return
+  observing = true
+  new MutationObserver(() => renderMermaid(document)).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'],
+  })
+}
+
+// ---- Image zoom ------------------------------------------------------------
+
+function zoom(img: HTMLImageElement) {
+  const overlay = document.createElement('div')
+  overlay.className = 'fd-zoom'
+  overlay.setAttribute('role', 'dialog')
+  overlay.setAttribute('aria-label', img.alt || 'Image')
+  const big = document.createElement('img')
+  big.src = img.currentSrc || img.src
+  big.alt = img.alt
+  overlay.append(big)
+  const close = () => {
+    overlay.remove()
+    removeEventListener('keydown', onKey)
+  }
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') close()
+  }
+  overlay.addEventListener('click', close)
+  addEventListener('keydown', onKey)
+  document.body.append(overlay)
 }

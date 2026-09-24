@@ -58,6 +58,77 @@ A whole component on one line also works for short content:
 
 See [Components](/docs/components) for every component.
 
+## GitHub alerts
+
+GitHub's alert syntax renders as a [Callout](/docs/components/callout):
+
+~~~mdx
+> [!NOTE]
+> Useful information.
+
+> [!TIP]
+> A helpful suggestion.
+
+> [!WARNING]
+> Something needs attention.
+
+> [!CAUTION]
+> Risky: think twice.
+~~~
+
+> [!NOTE]
+> Useful information.
+
+> [!TIP]
+> A helpful suggestion.
+
+> [!WARNING]
+> Something needs attention.
+
+> [!CAUTION]
+> Risky: think twice.
+
+`[!IMPORTANT]` works too. A blockquote without a marker stays a quote:
+
+> Documentation is a love letter to your future self.
+
+## Diagrams
+
+Fence a [Mermaid](https://mermaid.js.org) diagram with `mermaid`:
+
+~~~mdx
+```mermaid
+graph LR
+  Files -->|jevidocs push| API
+  Admin --> API
+  MCP --> API
+  API --> Postgres
+  Reader --> API
+```
+~~~
+
+```mermaid
+graph LR
+  Files -->|jevidocs push| API
+  Admin --> API
+  MCP --> API
+  API --> Postgres
+  Reader --> API
+```
+
+More code block options (line highlights, numbers, diffs, focus) are on
+[Code blocks](/docs/components/code-blocks).
+
+## Images
+
+Images use normal Markdown, load lazily, and open full size when clicked:
+
+~~~mdx
+![The jevidocs logo](https://jevidocs.jevido.app/favicon.svg)
+~~~
+
+![The jevidocs logo](https://jevidocs.jevido.app/favicon.svg)
+
 ## Links
 
 Link between pages with their reader URL: `/docs/<slug>` inside the jevidocs
