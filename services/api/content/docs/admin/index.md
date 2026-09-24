@@ -114,6 +114,31 @@ shows a helpful score per page and every answer, newest first; tick "Only
 with a message" to read just the comments. The API accepts at most 20
 answers per IP address per hour.
 
+## Roles
+
+Every user has a role:
+
+| Role | Can |
+| ---- | --- |
+| `viewer` | Read everything in the admin, manage their own tokens and password. |
+| `editor` | Also create, edit, delete, reorder and import pages and assets. |
+| `admin` | Also create, configure and delete projects, and manage users. |
+
+The last admin cannot be demoted or deleted. MCP write tools need an editor
+or admin token. Pages show who edited them last.
+
+## Draft previews
+
+Unpublished pages are hidden from the reader, search and `llms.txt`. In the
+editor, **Copy preview link** creates a signed link that shows the draft on
+the site for 7 days, with a "Draft preview" note.
+
+## Export
+
+**Download export** in a project's settings gives a zip of every page as
+Markdown with front matter, in the layout `jevidocs push` reads back, plus
+`project.json` with the project's settings.
+
 ## Users
 
 **Users** lists everyone who can sign in to the admin; each of them can edit
