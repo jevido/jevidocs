@@ -1,0 +1,57 @@
+# syntax=docker/dockerfile:1.7
+
+# jevidocs.jevido.app: the landing page and the docs reader (apps/site).
+#
+# Built by Coolify from the repository root (see infra/deploy/README.md).
+# The reader is a single-page app per entry (docs/, p/); nginx serves each
+# entry's index.html for every path below it.
+
+ARG BUN_IMAGE=docker.io/oven/bun:1.4
+
+FROM ${BUN_IMAGE} AS deps
+WORKDIR /src
+COPY package.json bun.lock bunfig.toml ./
+COPY apps/site/package.json apps/site/
+COPY apps/admin/package.json apps/admin/
+RUN bun install --frozen-lockfile
+
+FROM deps AS site
+ARG VITE_API_URL=https://api.jevidocs.jevido.app
+ENV VITE_API_URL=${VITE_API_URL}
+COPY apps/site apps/site
+# _assets.txt lists this build's hashed files, so the next deploy can carry
+# them forward (see the `previous` stage).
+RUN cd apps/site && bun run check && bun run build && (cd dist/assets && ls -1) > dist/_assets.txt
+
+# --- Previous release's assets -----------------------------------------------
+# During a rolling deploy, and in tabs opened before it, HTML from one release
+# asks for hashed JS/CSS from that release. Carrying the live release's assets
+# into this image means the new container can still serve them. Best effort:
+# the first deploy, or an unreachable site, just carries nothing.
+FROM docker.io/library/alpine:3.22 AS previous
+ARG PREVIOUS_SITE_URL=https://jevidocs.jevido.app
+# Changes every commit, so this layer is never served from cache.
+ARG SOURCE_COMMIT=""
+RUN mkdir -p /prev/assets && cd /prev/assets \
+ && echo "carrying assets forward for $SOURCE_COMMIT" \
+ && if wget -qO /tmp/list "$PREVIOUS_SITE_URL/_assets.txt"; then \
+      grep -E '^[A-Za-z0-9._-]+$' /tmp/list | while read -r f; do \
+        wget -q "$PREVIOUS_SITE_URL/assets/$f" -O "$f" || rm -f "$f"; \
+      done; \
+    fi \
+ && ls -1 | wc -l
+
+FROM docker.io/library/nginx:1.29-alpine
+COPY infra/deploy/site/nginx.conf /etc/nginx/conf.d/default.conf
+COPY infra/deploy/shared/drain.sh /drain.sh
+COPY --from=previous /prev/assets /usr/share/nginx/html/assets
+COPY --from=site /src/apps/site/dist /usr/share/nginx/html
+EXPOSE 80
+# drain.sh keeps serving briefly after a stop request, then asks nginx for a
+# graceful quit (SIGQUIT), so a rolling deploy never drops requests.
+STOPSIGNAL SIGTERM
+ENV STOP_SIGNAL=QUIT
+ENTRYPOINT ["/drain.sh", "/docker-entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --quiet --spider --tries=1 http://127.0.0.1/healthz || exit 1

@@ -1,0 +1,7 @@
+# Only services/api is needed; everything else stays out of the context.
+*
+!services/api
+!infra/deploy/shared
+services/api/.env
+services/api/storage
+services/api/tmp

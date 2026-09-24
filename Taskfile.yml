@@ -1,0 +1,111 @@
+# Root task runner. Units keep their own tooling; the tasks below are thin
+# entry points into them. Call sub-tasks through {{.TASK_EXE}}.
+
+version: "3"
+
+vars:
+  # Every port a dev task listens on. Keep in sync with the table in CLAUDE.md.
+  DEV_PORTS: "4720 4721 4730 4740 4741"
+  DEV_COMPOSE: podman compose -f infra/dev/compose.yml
+
+tasks:
+  default:
+    desc: List available tasks
+    silent: true
+    cmds:
+      - "{{.TASK_EXE}} --list"
+
+  down:
+    desc: Stop every dev server this repo started (site, admin, API, Postgres)
+    silent: true
+    cmds:
+      - ./infra/dev/down.sh {{.DEV_PORTS}}
+      - "{{.DEV_COMPOSE}} stop >/dev/null 2>&1 && echo 'stopped dev Postgres' || true"
+
+  db:up:
+    desc: Start local Postgres 18 on 127.0.0.1:4732 and wait until it is ready
+    cmds:
+      - "{{.DEV_COMPOSE}} up -d --wait"
+
+  db:reset:
+    desc: Delete the local Postgres data and start fresh
+    prompt: This deletes all local database data. Continue?
+    cmds:
+      - "{{.DEV_COMPOSE}} down -v"
+      - "{{.DEV_COMPOSE}} up -d --wait"
+
+  install:
+    desc: Install JS dependencies for every workspace
+    cmds:
+      - bun install
+
+  dev:
+    desc: Run API, site and admin together (Ctrl+C stops all)
+    deps: [api:dev, site:dev, admin:dev]
+
+  site:dev:
+    desc: Run the landing page and docs reader with Vite (http://127.0.0.1:4720)
+    dir: ./apps/site
+    env:
+      VITE_API_URL: http://127.0.0.1:4730
+    cmds:
+      - bun run dev
+
+  site:build:
+    desc: Build apps/site into apps/site/dist
+    dir: ./apps/site
+    cmds:
+      - bun run build
+
+  admin:dev:
+    desc: Run the admin app with Vite (http://127.0.0.1:4740)
+    dir: ./apps/admin
+    env:
+      VITE_API_URL: http://127.0.0.1:4730
+    cmds:
+      - bun run dev
+
+  admin:build:
+    desc: Build apps/admin into apps/admin/dist
+    dir: ./apps/admin
+    cmds:
+      - bun run build
+
+  api:dev:
+    desc: Run the Goravel API with local Postgres (creates .env and APP_KEY on first run)
+    deps: [db:up]
+    dir: ./services/api
+    cmds:
+      - test -f .env || (cp .env.example .env && go run . artisan key:generate)
+      # Migrates, creates the first admin and syncs content/ on start.
+      - go run .
+
+  api:test:
+    desc: Test the Goravel API
+    dir: ./services/api
+    cmds:
+      - go test ./...
+
+  deploy:build:site:
+    desc: Build the jevidocs.jevido.app image locally, exactly as Coolify does
+    cmds:
+      - podman build -f infra/deploy/site/Containerfile -t jevidocs-site:local .
+
+  deploy:build:admin:
+    desc: Build the admin.jevidocs.jevido.app image locally, exactly as Coolify does
+    cmds:
+      - podman build -f infra/deploy/admin/Containerfile -t jevidocs-admin:local .
+
+  deploy:build:api:
+    desc: Build the api.jevidocs.jevido.app image locally, exactly as Coolify does
+    cmds:
+      - podman build -f infra/deploy/api/Containerfile -t jevidocs-api:local .
+
+  check:
+    desc: Format check, vet, test and type-check every unit
+    cmds:
+      - test -z "$(gofmt -l services packages)"
+      - go vet ./services/api/...
+      - go test ./services/api/...
+      - bun run --cwd apps/site check
+      - bun run --cwd apps/admin check

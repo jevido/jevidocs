@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1.7
+
+# The jevidocs API (services/api) as served at api.jevidocs.jevido.app.
+#
+# Built by Coolify from the repository root (see infra/deploy/README.md). Only
+# services/api is copied in: it is its own Go module and imports nothing from
+# the rest of the monorepo, so GOWORK=off keeps the root go.work out of the
+# build.
+
+FROM golang:1.27-alpine AS build
+ENV GOWORK=off CGO_ENABLED=0
+WORKDIR /src
+
+COPY services/api/go.mod services/api/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
+COPY services/api ./
+
+# A broken push fails here instead of serving.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go test ./...
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -trimpath -ldflags='-s -w' -o /out/api .
+
+FROM alpine:3.22
+RUN apk add --no-cache ca-certificates tzdata wget \
+ && adduser -D -H -u 10001 jevidocs
+WORKDIR /app
+COPY --from=build /out/api /app/api
+COPY infra/deploy/shared/drain.sh /app/drain.sh
+# Goravel writes logs and runtime files under storage/.
+RUN mkdir -p /app/storage && chown jevidocs /app/storage
+USER jevidocs
+
+# APP_KEY, APP_URL, SITE_URL, ADMIN_* and the DB_* connection come from Coolify's environment
+# variables; nothing secret is baked into the image. The server migrates on
+# start and exits if it cannot, so a deploy that cannot reach Postgres fails.
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    APP_HOST=0.0.0.0 \
+    APP_PORT=4730 \
+    DB_CONNECTION=postgres \
+    DB_MIGRATE_ON_START=true \
+    LOG_CHANNEL=single \
+    LOG_PRINT=true \
+    LOG_LEVEL=info
+EXPOSE 4730
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget --quiet --spider --tries=1 http://127.0.0.1:4730/health || exit 1
+
+# drain.sh keeps serving briefly after a stop request, so a rolling deploy
+# never removes this container before the proxy routes to its replacement.
+STOPSIGNAL SIGTERM
+CMD ["/app/drain.sh", "/app/api"]

@@ -11,12 +11,12 @@ description: >
 
 > Vendored from `goravel/goravel` `.agents/skills/goravel-development/SKILL.md`
 > at commit `4ef766131584b931ac39c7ec5034d59a11fccad8`, with local edits for
-> The Bakery marked **(Bakery)**. Re-sync from upstream deliberately.
+> The Bakery marked **(jevidocs)**. Re-sync from upstream deliberately.
 
-## (Bakery) Rules for this repo
+## (jevidocs) Rules for this repo
 
 - Goravel services live in `services/<name>/`, each its own Go module
-  (`dev.jevido/bakery/services/<name>`) registered in the root `go.work`.
+  (`dev.jevido/jevidocs/services/<name>`) registered in the root `go.work`.
   Create one with `goravel new` inside `services/`, then `go work use`.
 - **Services are JSON APIs only.** No Inertia, no server-rendered pages, no
   `resources/views` templates, no Vite or frontend assets inside a service.
@@ -71,8 +71,8 @@ freely, but don't rename defaults without `WithPaths()` in `bootstrap/app.go`.
 - **`routes/`** — Route definitions (`web.go`, `grpc.go`); registered in
   `bootstrap/app.go::WithRouting`.
 - **`resources/views/`** — `*.tmpl` templates rendered via
-  `ctx.Response().View().Make(...)`. **(Bakery)** Not used: remove it.
-- **`lang/`**, **`storage/`**, **`public/`** (**(Bakery)** remove), **`tests/`** — Translations,
+  `ctx.Response().View().Make(...)`. **(jevidocs)** Not used: remove it.
+- **`lang/`**, **`storage/`**, **`public/`** (**(jevidocs)** remove), **`tests/`** — Translations,
   runtime files/logs, public assets, feature tests (`testify` suites).
 - **`.env` / `artisan` / `main.go`** — Env config, console entry
   (`./artisan list`), app launch (`bootstrap.Boot().Start()`).
@@ -194,5 +194,5 @@ package. `go test ./... --env=.env.testing` swaps root env.
 
 ## Custom Extensions
 
-**(Bakery)** Project-specific rules live in the "Rules for this repo" section
+**(jevidocs)** Project-specific rules live in the "Rules for this repo" section
 at the top of this file, not in a separate `CUSTOM.md`.

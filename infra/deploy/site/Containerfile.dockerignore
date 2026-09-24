@@ -1,0 +1,11 @@
+# Only the site, the workspace manifests and the shared deploy scripts.
+*
+!package.json
+!bun.lock
+!bunfig.toml
+!apps/site
+!apps/admin/package.json
+!infra/deploy/site
+!infra/deploy/shared
+apps/*/node_modules
+apps/*/dist
