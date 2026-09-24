@@ -24,3 +24,18 @@ bun run check
 
 `VITE_API_URL` defaults to `https://api.jevidocs.jevido.app`; for a local API
 use `VITE_API_URL=http://127.0.0.1:4730 bun run dev`.
+
+## Smoke tests
+
+`e2e/smoke.ts` drives Chromium (puppeteer-core) through the API, the docs
+reader and, with credentials, the admin. It fails on any failed check or
+console error.
+
+```sh
+task e2e    # local dev servers (4720, 4740, 4730)
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=admin task e2e
+SITE_URL=https://jevidocs.jevido.app ADMIN_URL=https://admin.jevidocs.jevido.app \
+  API_URL=https://api.jevidocs.jevido.app task e2e
+```
+
+`CHROME_PATH` defaults to `/usr/bin/chromium`.

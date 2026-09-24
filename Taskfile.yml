@@ -101,6 +101,11 @@ tasks:
     cmds:
       - podman build -f infra/deploy/api/Containerfile -t jevidocs-api:local .
 
+  e2e:
+    desc: "Run the browser smoke tests (SITE_URL, ADMIN_URL, API_URL, ADMIN_EMAIL, ADMIN_PASSWORD)"
+    cmds:
+      - bun run --cwd apps/site e2e
+
   check:
     desc: Format check, vet, test and type-check every unit
     cmds:
