@@ -17,6 +17,11 @@ type Project struct {
 	// Links is a JSON array of {text, url} for the docs navbar.
 	Links  string `json:"-"`
 	Public bool   `json:"public"`
+	// EditURL is a template for "Edit this page" links; {path} is replaced
+	// by the page's source path (or slug + ".md").
+	EditURL string `gorm:"column:edit_url" json:"edit_url"`
+	// Banner is an announcement shown above every page (Markdown inline).
+	Banner string `json:"banner"`
 	// Managed projects are synced from files on start (the jevidocs docs).
 	Managed bool `json:"managed"`
 }
@@ -38,6 +43,10 @@ type Page struct {
 	Toc         string `json:"-"`
 	Sections    string `json:"-"`
 	Plain       string `json:"-"`
+	// RenderVersion is docs.RenderVersion at the time HTML was produced.
+	RenderVersion int `json:"-"`
+	// SourcePath is the file a synced page came from, e.g. guides/index.md.
+	SourcePath string `json:"source_path"`
 }
 
 // User is an admin account.

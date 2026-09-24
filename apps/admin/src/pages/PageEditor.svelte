@@ -5,7 +5,8 @@
   import { formatDate, slugify } from '../lib/format'
   import { snippets } from '../lib/snippets'
   import Preview from '../lib/Preview.svelte'
-  import type { AdminPageInput, TocItem } from '../lib/types'
+  import HistoryDrawer from '../lib/HistoryDrawer.svelte'
+  import type { AdminPage, AdminPageInput, TocItem } from '../lib/types'
   import { untrack } from 'svelte'
 
   let { project, id }: { project: string; id: number | 'new' } = $props()
@@ -36,6 +37,24 @@
   let view = $state<'split' | 'write' | 'preview'>('split')
   let textarea = $state<HTMLTextAreaElement>()
   let slugTouched = $state(initialId !== 'new')
+  let historyOpen = $state(false)
+
+  function onRestored(p: AdminPage) {
+    const input: AdminPageInput = {
+      slug: p.slug,
+      title: p.title,
+      description: p.description,
+      icon: p.icon,
+      position: p.position,
+      section: p.section,
+      published: p.published,
+      body: p.body,
+    }
+    form = input
+    saved = JSON.stringify(input)
+    updatedAt = p.updated_at
+    historyOpen = false
+  }
 
   const dirty = $derived(JSON.stringify(form) !== saved)
   const isNew = $derived(id === 'new')
@@ -160,6 +179,10 @@
 
 <svelte:window onkeydown={onWindowKeydown} onbeforeunload={onBeforeUnload} />
 
+{#if historyOpen && id !== 'new'}
+  <HistoryDrawer {project} pageId={id} current={form.body} {dirty} onclose={() => (historyOpen = false)} onrestore={onRestored} />
+{/if}
+
 <div class="crumbs muted">
   <a href={href('/projects')}>Projects</a> /
   <a href={href(`/projects/${project}`)}>{project}</a> /
@@ -175,6 +198,7 @@
     </p>
   </div>
   <div class="spacer"></div>
+  {#if !isNew}<button class="btn" onclick={() => (historyOpen = true)}>History</button>{/if}
   {#if !isNew}<button class="btn danger" onclick={remove}>Delete</button>{/if}
   <button class="btn primary" onclick={save} disabled={busy || loading || (!dirty && !isNew)}>
     {busy ? 'Saving…' : isNew ? 'Create page' : 'Save'} <kbd>⌘S</kbd>

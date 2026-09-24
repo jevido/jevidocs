@@ -105,3 +105,10 @@ func TestLongerFenceKeepsInnerFence(t *testing.T) {
 		t.Errorf("expanded inside a four-backtick fence: %s", r.HTML)
 	}
 }
+
+func TestSectionTextKeepsInlinePunctuation(t *testing.T) {
+	r, _ := Render("## A\n\nUse `x`, then **y**.\n\n- one\n- two\n")
+	if got := r.Sections[0].Text; got != "Use x, then y. one two" {
+		t.Errorf("text = %q", got)
+	}
+}

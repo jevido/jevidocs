@@ -27,6 +27,10 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+// RenderVersion changes whenever the output of Render changes for the same
+// input. Stored pages from an older version are re-rendered on start.
+const RenderVersion = 2
+
 // TocItem is one heading in a page's table of contents.
 type TocItem struct {
 	Depth int    `json:"depth"`

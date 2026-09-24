@@ -53,7 +53,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (session.token) headers.Authorization = `Bearer ${session.token}`
@@ -119,6 +119,12 @@ export const api = {
   deletePage: (project: string, id: number) =>
     request<{ ok: boolean }>('DELETE', `/api/admin/projects/${enc(project)}/pages/${id}`),
 
+  importOpenAPI: (project: string, spec: string, prefix: string) =>
+    request<{ created: number; updated: number; unchanged: number; deleted: number }>(
+      'POST',
+      `/api/admin/projects/${enc(project)}/openapi`,
+      { spec, prefix },
+    ),
   preview: (body: string) => request<{ html: string; toc: TocItem[] }>('POST', '/api/admin/preview', { body }),
 
   tokens: () => request<Token[]>('GET', '/api/admin/tokens'),

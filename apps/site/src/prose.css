@@ -458,3 +458,13 @@
   .prose table { display: block; overflow-x: auto; }
 }
 .prose .fd-card-slot { display: contents; }
+
+/* OpenAPI endpoint line (generated API reference pages) */
+.prose .fd-api-endpoint { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin: 0 0 1.25em; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 0.6rem; }
+.prose .fd-api-method { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font: 600 0.72rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.03em; color: #52525b; background: color-mix(in oklab, #71717a 16%, transparent); }
+.prose .fd-api-method[data-method="get"] { color: #2563eb; background: color-mix(in oklab, #3b82f6 16%, transparent); }
+.prose .fd-api-method[data-method="post"] { color: #16a34a; background: color-mix(in oklab, #22c55e 16%, transparent); }
+.prose .fd-api-method[data-method="put"] { color: #ca8a04; background: color-mix(in oklab, #eab308 18%, transparent); }
+.prose .fd-api-method[data-method="patch"] { color: #ea580c; background: color-mix(in oklab, #f97316 16%, transparent); }
+.prose .fd-api-method[data-method="delete"] { color: #dc2626; background: color-mix(in oklab, #ef4444 16%, transparent); }
+.prose .fd-api-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; background: none; border: 0; padding: 0; }

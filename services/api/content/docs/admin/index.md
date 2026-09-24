@@ -66,6 +66,22 @@ Edits made to it in the admin app are overwritten on the next deploy; change
 the files in `services/api/content/docs` instead.
 </Callout>
 
+### History
+
+Every save that changes a page's title, description or body keeps the
+previous version. **History** in the editor lists the last 50 versions. Pick
+one to see its Markdown or a line diff against what is in the editor, then
+**Restore this version** to bring it back. Restoring is a save too, so the
+version it replaces stays in the history and nothing is lost.
+
+## Feedback
+
+Every docs page ends with "Was this page helpful?". Readers answer with a
+thumbs up or down and can add a message. The **Feedback** tab of a project
+shows a helpful score per page and every answer, newest first; tick "Only
+with a message" to read just the comments. The API accepts at most 20
+answers per IP address per hour.
+
 ## API tokens
 
 **Tokens** creates long-lived API tokens for scripts and the

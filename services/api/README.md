@@ -74,6 +74,7 @@ All responses are JSON unless noted. Errors: `{"error": "message"}` with a
 | GET | `/api/projects/{project}/llms.txt` | text/plain index of pages |
 | GET | `/api/projects/{project}/llms-full.txt` | text/plain, every page's Markdown |
 | GET | `/api/projects/{project}/page.md?slug=a/b` | text/markdown of one page |
+| POST | `/api/projects/{project}/feedback` | `{slug, helpful, message?}` → `{ok: true}` (message ≤ 2000 chars; 20 per IP per hour) |
 
 ```ts
 type Project = {
@@ -133,6 +134,10 @@ type SearchResult = {
 | POST | `/api/admin/tokens` | `{name}` → `{id, name, token}` (plain token shown once) |
 | DELETE | `/api/admin/tokens/{id}` | → `{ok: true}` |
 | GET | `/api/admin/stats` | → `{projects, pages, tokens}` |
+| GET | `/api/admin/projects/{project}/feedback` | → `{entries: {id, slug, helpful, message, created_at}[], totals: {slug, helpful, not_helpful}[]}` (newest first) |
+| GET | `/api/admin/projects/{project}/pages/{id}/revisions` | → `{id, title, created_at, size}[]` (newest first, last 50 kept) |
+| GET | `/api/admin/projects/{project}/pages/{id}/revisions/{rid}` | → `{id, title, description, body, created_at, size}` |
+| POST | `/api/admin/projects/{project}/pages/{id}/revisions/{rid}/restore` | → `AdminPage` (the replaced state becomes a revision) |
 
 ```ts
 type User = { id: number; name: string; email: string }

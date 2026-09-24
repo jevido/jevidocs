@@ -4,13 +4,15 @@
   import { formatDate } from '../lib/format'
   import { toast } from '../lib/toast.svelte'
   import ProjectForm from '../lib/ProjectForm.svelte'
+  import FeedbackPanel from '../lib/FeedbackPanel.svelte'
+  import OpenAPIImport from '../lib/OpenAPIImport.svelte'
   import type { AdminPage, ProjectInput } from '../lib/types'
 
   let { slug }: { slug: string } = $props()
 
   let form = $state<ProjectInput | null>(null)
   let pages = $state.raw<AdminPage[]>([])
-  let tab = $state<'pages' | 'settings'>('pages')
+  let tab = $state<'pages' | 'feedback' | 'settings'>('pages')
   let busy = $state(false)
   let filter = $state('')
 
@@ -106,12 +108,14 @@
     {#if form?.description}<p>{form.description}</p>{/if}
   </div>
   <div class="spacer"></div>
+  <OpenAPIImport project={slug} onimported={load} />
   <a class="btn" href={publicDocsUrl(slug)} target="_blank" rel="noreferrer">View docs ↗</a>
   <a class="btn primary" href={href(`/projects/${slug}/pages/new`)}>+ New page</a>
 </div>
 
 <div class="tabs" role="tablist">
   <button role="tab" aria-selected={tab === 'pages'} onclick={() => (tab = 'pages')}>Pages <span class="badge">{pages.length}</span></button>
+  <button role="tab" aria-selected={tab === 'feedback'} onclick={() => (tab = 'feedback')}>Feedback</button>
   <button role="tab" aria-selected={tab === 'settings'} onclick={() => (tab = 'settings')}>Settings</button>
 </div>
 
@@ -157,6 +161,8 @@
       </table>
     {/if}
   </div>
+{:else if tab === 'feedback'}
+  <FeedbackPanel project={slug} />
 {:else if form}
   <form class="card card-pad settings" onsubmit={save}>
     <ProjectForm bind:value={form} lockSlug />

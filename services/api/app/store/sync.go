@@ -15,13 +15,13 @@ import (
 // fsys: `guides/index.md` becomes slug `guides`, `index.md` the project
 // index. Pages without a file are removed, so the files are the source of
 // truth. Unchanged pages are not rewritten.
-func SyncProject(slug, name, description, githubURL string, links []Link, fsys fs.FS) error {
-	p, err := FindProject(slug, true)
+func SyncProject(in ProjectInput, fsys fs.FS) error {
+	p, err := FindProject(in.Slug, true)
 	if err != nil && err != ErrNotFound {
 		return err
 	}
 	pub := true
-	in := ProjectInput{Slug: slug, Name: name, Description: description, GithubURL: githubURL, Links: links, Public: &pub}
+	in.Public = &pub
 	if p.ID == 0 {
 		p, err = SaveProject(in, nil)
 	} else {
@@ -79,7 +79,7 @@ func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
 		if title == "" {
 			title = strings.TrimSuffix(path.Base(file), path.Ext(file))
 		}
-		in := PageInput{Slug: pageSlug, Title: title, Body: string(raw)}
+		in := PageInput{Slug: pageSlug, Title: title, Body: string(raw), SourcePath: file}
 		if cur, ok := bySlug[pageSlug]; ok {
 			var full models.Page
 			if err := facades.Orm().Query().Where("id", cur.ID).First(&full); err != nil {
@@ -87,7 +87,8 @@ func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
 			}
 			_, body := docs.SplitFrontMatter(string(raw))
 			if full.Body == body && full.Title == title && full.Description == fm.Description &&
-				full.Icon == fm.Icon && full.Section == fm.Section && full.Position == fm.Position && full.Published {
+				full.Icon == fm.Icon && full.Section == fm.Section && full.Position == fm.Position && full.Published &&
+				full.SourcePath == file {
 				res.Unchanged++
 				return nil
 			}

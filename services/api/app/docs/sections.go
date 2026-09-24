@@ -34,10 +34,18 @@ func sectionsFromHTML(src string) []Section {
 		}
 		if n.Type == html.TextNode {
 			text.WriteString(n.Data)
+		}
+		// Words only get a space at block boundaries, so "`code`," stays
+		// "code," rather than "code ,".
+		block := n.Type == html.ElementNode && blockTags[n.Data]
+		if block {
 			text.WriteByte(' ')
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			walk(c)
+		}
+		if block {
+			text.WriteByte(' ')
 		}
 	}
 	walk(doc)
@@ -46,6 +54,12 @@ func sectionsFromHTML(src string) []Section {
 		sections = sections[1:]
 	}
 	return sections
+}
+
+var blockTags = map[string]bool{
+	"p": true, "div": true, "li": true, "ul": true, "ol": true, "pre": true, "blockquote": true,
+	"table": true, "tr": true, "td": true, "th": true, "br": true, "figure": true, "figcaption": true,
+	"details": true, "summary": true, "h1": true, "h5": true, "h6": true, "hr": true,
 }
 
 func innerText(n *html.Node) string {

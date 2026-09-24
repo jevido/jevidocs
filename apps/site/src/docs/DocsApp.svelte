@@ -5,6 +5,7 @@
   import Icon from '../lib/Icon.svelte'
   import { interceptLinks, router, scrollToHash } from '../lib/router.svelte'
   import Navbar from './Navbar.svelte'
+  import Feedback from './Feedback.svelte'
   import PageActions from './PageActions.svelte'
   import SearchDialog from './SearchDialog.svelte'
   import Toc from './Toc.svelte'
@@ -187,6 +188,7 @@
         </div>
 
         <footer class="page-foot">
+          <Feedback project={route.project} slug={page.slug} />
           {#if updated}<p class="updated">Last updated on {updated}</p>{/if}
           {#if page.previous || page.next}
             <div class="pager">

@@ -40,6 +40,8 @@ type ProjectView struct {
 	Links       []Link     `json:"links"`
 	Public      bool       `json:"public"`
 	Managed     bool       `json:"managed"`
+	EditURL     string     `json:"edit_url"`
+	Banner      string     `json:"banner"`
 	UpdatedAt   string     `json:"updated_at"`
 	Tree        *docs.Tree `json:"tree,omitempty"`
 }
@@ -48,7 +50,7 @@ func ViewProject(p models.Project) ProjectView {
 	links := []Link{}
 	_ = json.Unmarshal([]byte(p.Links), &links)
 	v := ProjectView{Slug: p.Slug, Name: p.Name, Description: p.Description, GithubURL: p.GithubURL,
-		Links: links, Public: p.Public, Managed: p.Managed}
+		Links: links, Public: p.Public, Managed: p.Managed, EditURL: p.EditURL, Banner: p.Banner}
 	if p.UpdatedAt != nil {
 		v.UpdatedAt = p.UpdatedAt.ToIso8601String()
 	}
@@ -93,6 +95,8 @@ type ProjectInput struct {
 	GithubURL   string `json:"github_url"`
 	Links       []Link `json:"links"`
 	Public      *bool  `json:"public"`
+	EditURL     string `json:"edit_url"`
+	Banner      string `json:"banner"`
 }
 
 // SaveProject creates (existing == nil) or updates a project.
@@ -123,6 +127,8 @@ func SaveProject(in ProjectInput, existing *models.Project) (models.Project, err
 	p.Name = strings.TrimSpace(in.Name)
 	p.Description = strings.TrimSpace(in.Description)
 	p.GithubURL = strings.TrimSpace(in.GithubURL)
+	p.EditURL = strings.TrimSpace(in.EditURL)
+	p.Banner = strings.TrimSpace(in.Banner)
 	if in.Links == nil {
 		in.Links = []Link{}
 	}
@@ -194,6 +200,7 @@ type PageView struct {
 	Next        *docs.Link     `json:"next"`
 	Markdown    string         `json:"markdown"`
 	URL         string         `json:"url"`
+	EditURL     string         `json:"edit_url"`
 	UpdatedAt   string         `json:"updated_at"`
 }
 
@@ -222,6 +229,7 @@ func ViewPage(p models.Project, slug string) (PageView, error) {
 	_ = json.Unmarshal([]byte(pg.Toc), &v.Toc)
 	v.Breadcrumbs = tree.Breadcrumbs(pg.Slug, pg.Title)
 	v.Previous, v.Next = tree.Neighbours(pg.Slug)
+	v.EditURL = EditURL(p, pg)
 	if pg.UpdatedAt != nil {
 		v.UpdatedAt = pg.UpdatedAt.ToIso8601String()
 	}
@@ -254,6 +262,8 @@ type PageInput struct {
 	Section     string `json:"section"`
 	Published   *bool  `json:"published"`
 	Body        string `json:"body"`
+	// SourcePath is set by file syncs; empty keeps the current value.
+	SourcePath string `json:"-"`
 }
 
 var pageSlugRe = regexp.MustCompile(`^(?:[a-z0-9][a-z0-9._-]*)(?:/[a-z0-9][a-z0-9._-]*)*$`)
@@ -284,6 +294,7 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 	if title == "" {
 		return pg, ValidationError{"title is required"}
 	}
+	prev := pg // the stored state, for the revision history
 	r, err := docs.Render(body)
 	if err != nil {
 		return pg, err
@@ -306,6 +317,10 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 	pg.Toc = string(toc)
 	secs, _ := json.Marshal(nonNil(r.Sections))
 	pg.Sections = string(secs)
+	pg.RenderVersion = docs.RenderVersion
+	if in.SourcePath != "" {
+		pg.SourcePath = in.SourcePath
+	}
 	if existing == nil {
 		err = facades.Orm().Query().Create(&pg)
 	} else {
@@ -313,6 +328,9 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 	}
 	if err == nil {
 		touch(p)
+		if existing != nil && RevisionWorthy(prev, pg) {
+			recordRevision(p, prev)
+		}
 	}
 	return pg, err
 }
@@ -363,4 +381,23 @@ func DeletePage(p models.Project, pg models.Page) error {
 func Preview(body string) (docs.Rendered, error) {
 	_, b := docs.SplitFrontMatter(body)
 	return docs.Render(b)
+}
+
+// EditURL is the "Edit this page" link of pg, or "" when the project has no
+// template.
+func EditURL(p models.Project, pg models.Page) string {
+	if p.EditURL == "" {
+		return ""
+	}
+	path := pg.SourcePath
+	if path == "" {
+		path = pg.Slug + ".md"
+		if pg.Slug == "" {
+			path = "index.md"
+		}
+	}
+	if !strings.Contains(p.EditURL, "{path}") {
+		return strings.TrimRight(p.EditURL, "/") + "/" + path
+	}
+	return strings.ReplaceAll(p.EditURL, "{path}", path)
 }
