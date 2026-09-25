@@ -24,7 +24,7 @@
     { icon: 'database', title: 'PostgreSQL + Goravel', text: 'A plain Goravel JSON API over Postgres. Migrations on start, health checks, and one binary to deploy.' },
     { icon: 'zap', title: 'Fast by default', text: 'Server-side rendering of Markdown and syntax highlighting with Chroma. The client only styles and routes.' },
     { icon: 'package', title: 'Multi-project', text: 'Host as many documentation sites as you like; each gets its own tree, search index and llms.txt.' },
-    { icon: 'code', title: 'OpenAPI reference', text: 'Import an OpenAPI 3 spec and get a page per operation: parameters, bodies, responses and curl/JS/Go examples.' },
+    { icon: 'code', title: 'OpenAPI reference', text: 'Import an OpenAPI 3 spec and get an interactive, Scalar-style API reference: schemas, code samples and a request client.' },
     { icon: 'text', title: 'Docs as code', text: 'Keep Markdown in git and run jevidocs push, or pull a project down to files. The CLI talks to the same API.' },
     { icon: 'book', title: 'History and feedback', text: 'Every edit keeps a revision you can diff and restore, and readers tell you which pages help.' },
   ]

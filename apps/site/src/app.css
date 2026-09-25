@@ -25,6 +25,15 @@
   --success: hsl(142 70% 38%);
   --idea: hsl(270 70% 58%);
 
+  /* HTTP method colours on OpenAPI pages. */
+  --method-get: hsl(217 80% 48%);
+  --method-post: hsl(142 64% 34%);
+  --method-put: hsl(28 90% 45%);
+  --method-patch: hsl(45 90% 36%);
+  --method-delete: hsl(0 74% 50%);
+  --method-head: hsl(262 60% 52%);
+  --method-options: hsl(190 70% 36%);
+
   --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --nav-h: 56px;
@@ -57,6 +66,14 @@
   --error: hsl(0 91% 71%);
   --success: hsl(142 69% 58%);
   --idea: hsl(270 95% 75%);
+
+  --method-get: hsl(213 94% 68%);
+  --method-post: hsl(142 69% 58%);
+  --method-put: hsl(31 97% 64%);
+  --method-patch: hsl(48 96% 60%);
+  --method-delete: hsl(0 91% 71%);
+  --method-head: hsl(262 90% 76%);
+  --method-options: hsl(188 80% 60%);
 }
 
 * { box-sizing: border-box; }

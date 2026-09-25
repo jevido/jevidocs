@@ -1,5 +1,6 @@
 import { API_URL } from './api-base'
 import { readerAuth } from './reader-auth.svelte'
+import type { ApiReference } from './openapi'
 
 export { API_URL }
 
@@ -60,6 +61,9 @@ export type Page = {
   previous: { title: string; slug: string } | null
   next: { title: string; slug: string } | null
   markdown: string
+  // "openapi" pages carry an API reference instead of HTML.
+  kind?: '' | 'openapi'
+  api?: ApiReference
   locale?: string
   fallback?: boolean
   draft?: boolean

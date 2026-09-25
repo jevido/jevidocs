@@ -163,6 +163,18 @@ await test('site: root toggle lists REST API', async () => {
   assert(items.some((t) => t.includes('REST API')), `menu = ${items.join(' | ')}`)
 })
 
+await test('site: OpenAPI reference with outline and request client', async () => {
+  await goto(page, SITE + '/docs/api/reference#tag/pages/GET/api/projects/{project}/search')
+  await waitFor(async () => (await page.$$('section.op[data-op]')).length >= 7, 'operations')
+  assert((await page.$$('.sidebar .api-nav a.op')).length >= 7, 'sidebar outline is missing operations')
+  assert((await page.$$('nav.toc a')).length === 0, 'an API reference has no TOC column')
+  const code = await page.$eval('section.op .panel pre', (e) => e.textContent ?? '')
+  assert(code.includes('curl'), `request sample = ${code.slice(0, 80)}`)
+  await page.click('section.op button.test')
+  await waitFor(async () => (await page.$('dialog.client[open]')) !== null, 'request client')
+  await page.keyboard.press('Escape')
+})
+
 await test('site: mermaid renders on a canvas', async () => {
   const cdn = await fetch('https://cdn.jsdelivr.net/npm/mermaid@11/package.json').catch(() => null)
   if (!cdn?.ok) throw new Skip('jsdelivr unreachable')

@@ -19,6 +19,8 @@
   import { sidebar } from '../lib/sidebar.svelte'
   import { containsSlug } from '../lib/tree'
   import type { TreeNode } from '../lib/api'
+  import ApiReference from './api/ApiReference.svelte'
+  import { apiNav } from './api/state.svelte'
 
   interceptLinks()
 
@@ -147,6 +149,14 @@
     return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
   })
   const toc = $derived(page?.toc ?? [])
+
+  // OpenAPI pages: the reference replaces the article body and the TOC, and
+  // its outline goes into the sidebar under the page.
+  const reference = $derived(page?.kind === 'openapi' ? page.api : undefined)
+  $effect(() => {
+    apiNav.slug = reference && page ? page.slug : ''
+    apiNav.ref = reference ?? null
+  })
 </script>
 
 <a class="skip-link" href="#content">Skip to content</a>
@@ -165,7 +175,7 @@
 
 <ReaderExtras previous={page?.previous?.slug} next={page?.next?.slug} onsearch={() => (searchOpen = true)} />
 
-<div class="layout" class:collapsed={sidebar.collapsed}>
+<div class="layout" class:collapsed={sidebar.collapsed} class:api={!!reference}>
   {#if drawerOpen}
     <div class="scrim" role="presentation" onclick={() => (drawerOpen = false)}></div>
   {/if}
@@ -247,7 +257,7 @@
         {/each}
       </div>
     {:else}
-      <article class:dim={status === 'loading'}>
+      <article class:dim={status === 'loading'} class:wide={!!reference}>
         {#if crumbs.length}
           <nav class="crumbs" aria-label="Breadcrumb">
             {#each crumbs as c, i (i)}
@@ -260,13 +270,17 @@
             {/each}
           </nav>
         {/if}
-        <h1 class="title">{page.title}</h1>
-        {#if page.description}<p class="description">{page.description}</p>{/if}
+        {#if !reference}
+          <h1 class="title">{page.title}</h1>
+          {#if page.description}<p class="description">{page.description}</p>{/if}
+        {/if}
         <PageActions
           markdown={page.markdown}
           markdownUrl={project?.access && project.access !== 'public' ? '' : api.markdownUrl(route.project, page.slug)} />
-        <div class="divider"></div>
-        <MobileToc items={toc} />
+        {#if !reference}
+          <div class="divider"></div>
+          <MobileToc items={toc} />
+        {/if}
 
         {#if page.draft}
           <p class="draft-note" role="note">Draft preview: this page is not published yet.</p>
@@ -274,10 +288,16 @@
         {#if page.fallback}
           <p class="fallback-note" role="note">This page is not translated yet; showing the original.</p>
         {/if}
-        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-        <div class="prose" bind:this={content} onclick={onContentClick} onkeydown={onContentKeydown}>
-          {@html page.html}
-        </div>
+        {#if reference}
+          {#key page.slug + page.updated_at}
+            <div class="api-ref"><ApiReference {reference} project={route.project} /></div>
+          {/key}
+        {:else}
+          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+          <div class="prose" bind:this={content} onclick={onContentClick} onkeydown={onContentKeydown}>
+            {@html page.html}
+          </div>
+        {/if}
 
         <footer class="page-foot">
           <Feedback project={route.project} slug={page.slug} />
@@ -316,7 +336,7 @@
   </main>
 
   <aside class="toc-col">
-    {#if page && status !== 'notfound'}
+    {#if page && status !== 'notfound' && !reference}
       <div class="toc-sticky">
         <Toc items={toc} {content} />
       </div>
@@ -406,6 +426,17 @@
     padding: 2.5rem 2.5rem 4rem;
   }
   article { max-width: 860px; margin: 0 auto; transition: opacity 0.2s; }
+  article.wide { max-width: 1320px; }
+  .api-ref { margin-top: 1.5rem; }
+  /* An API reference needs the width: no TOC column, a wider page. */
+  .layout.api { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); max-width: 1680px; }
+  .layout.api .toc-col { display: none; }
+  @media (min-width: 801px) {
+    .layout.api.collapsed { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 800px) {
+    .layout.api { grid-template-columns: minmax(0, 1fr); }
+  }
   article.dim { opacity: 0.6; }
   .crumbs {
     display: flex;

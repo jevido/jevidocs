@@ -15,6 +15,9 @@ The reader is a single-page app with a small history-API router
 this themselves). Content, page trees and search come from the API
 (`services/api/README.md`); the API renders Markdown to HTML and the site only
 styles it (`src/prose.css`) and adds copy buttons and tabs (`src/lib/enhance.ts`).
+OpenAPI pages are the exception: the API sends a structured reference and
+`src/docs/api/` lays it out Scalar-style, with code samples and the request
+client built in the browser (`src/lib/openapi.ts`).
 
 ```sh
 bun run dev      # http://127.0.0.1:4720, talks to VITE_API_URL

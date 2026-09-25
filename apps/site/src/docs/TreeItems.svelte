@@ -3,6 +3,8 @@
   import Icon, { normalizeIcon } from '../lib/Icon.svelte'
   import { router } from '../lib/router.svelte'
   import Folder from './TreeFolder.svelte'
+  import ApiNav from './api/ApiNav.svelte'
+  import { apiNav } from './api/state.svelte'
 
   let { nodes, depth = 0, onnavigate }: { nodes: TreeNode[]; depth?: number; onnavigate?: () => void } = $props()
 </script>
@@ -21,6 +23,9 @@
       {#if icon}<Icon name={icon} size={15} />{/if}
       <span>{node.name}</span>
     </a>
+    {#if apiNav.ref && apiNav.slug === node.slug}
+      <ApiNav reference={apiNav.ref} slug={node.slug} {onnavigate} />
+    {/if}
   {:else}
     <Folder {node} {depth} {onnavigate} />
   {/if}
