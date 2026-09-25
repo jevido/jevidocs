@@ -45,6 +45,9 @@ reader, `apps/admin` the editor. Read `README.md` for the overview and
   sections are produced by `services/api/app/docs` when a page is saved; the
   site only styles the HTML contract in `services/api/README.md` and attaches
   behaviour (tabs, copy buttons). Change the contract in both places.
+  OpenAPI pages are the one exception: the API derives a structured
+  reference (`app/openapi`) and the site renders it (`src/docs/api`); see
+  `docs/decisions/0011-native-openapi-reference.md`.
 - **Hosted MCP** lives in `services/api` (`app/mcpserver`, route `/mcp`).
   Tools are thin wrappers over `app/store`, the same code the REST routes use.
 - **Bun only** for JS. Do not use npm, pnpm or yarn, and do not commit their

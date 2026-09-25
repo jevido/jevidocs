@@ -26,8 +26,9 @@ and are read on a fumadocs-style docs site.
 - **i18n and versions:** per-locale pages with fallback and a language
   switcher; projects in a version group get a version switcher.
 - **Sources:** sync pages from a GitHub repo folder (webhook on push).
-- **OpenAPI:** generate an API reference (a page per operation) from an
-  OpenAPI 3 spec.
+- **OpenAPI:** a native, Scalar-style API reference from an OpenAPI 3 spec:
+  one page, two columns, code samples in six languages, a schema explorer
+  and a request client.
 - **CLI:** `jevidocs init | push | pull | search | openapi` for docs as code;
   binaries at https://jevidocs.jevido.app/downloads/.
 

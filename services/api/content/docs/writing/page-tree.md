@@ -101,5 +101,5 @@ icon: code
   outside any root.
 - Search, breadcrumbs and previous/next still span the whole project.
 
-This site uses one: the [REST API](/docs/api) tab, whose reference pages are
-generated from an OpenAPI spec on every start.
+This site uses one: the [REST API](/docs/api) tab, whose [API reference](/docs/api/reference)
+is imported from an OpenAPI spec on every start.

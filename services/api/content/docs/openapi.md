@@ -1,54 +1,65 @@
 ---
 title: OpenAPI
-description: Generate an API reference from an OpenAPI 3 document, like fumadocs-openapi.
+description: A native, interactive API reference from an OpenAPI 3 document, in the style of Scalar.
 position: 34
 section: Reference
 ---
 
-jevidocs can turn an **OpenAPI 3.0 or 3.1** document (JSON or YAML) into
-documentation pages, the way `fumadocs-openapi` does. The generated pages are
-ordinary Markdown pages: they show up in the sidebar, in search, in
-`llms.txt`, and agents can read them over MCP.
+jevidocs turns an **OpenAPI 3.0 or 3.1** document (JSON or YAML) into an
+API reference page laid out like [Scalar](https://scalar.com): the whole API
+on one page, every operation in two columns with its documentation on the
+left and request and response samples on the right, and a request client to
+try it. See it on this site's own [API reference](/docs/api/reference).
 
-## What gets generated
+The reference is still a page. It sits in the sidebar, shows up in search (per
+operation), and agents get it as Markdown in `llms.txt`, from `page.md` and
+over MCP.
 
-Under a prefix (default `api-reference`) the importer writes:
+## What the page shows
 
-<Files>
-<Folder name="api-reference" defaultOpen>
-<File name="index: API title, version, description, servers, a card per tag" />
-<Folder name="pets" defaultOpen>
-<File name="index: the tag's description and a table of its operations" />
-<File name="listpets: one page per operation" />
-<File name="createpet" />
-</Folder>
-<Folder name="default">
-<File name="operations without a tag" />
-</Folder>
-</Folder>
-</Files>
+- **Introduction:** title, version, the `OAS` version and the description.
+  Next to it, pickers for the **server** (with server variables), the
+  **authentication** scheme and credentials, and the **client** language for
+  code samples.
+- **Tags** as sections, in the order the spec declares them. Operations
+  without a tag go under `default`.
+- **Operations**, each with:
+  - the summary, method and path, and a **Deprecated** badge when it is
+  - the description (CommonMark, rendered like any page)
+  - path, query, header and cookie **parameters**, with types, `required`,
+    constraints (`min`, `max length`, `pattern`, ...), allowed values,
+    defaults and examples
+  - the **request body** per content type, as nested attributes: objects fold
+    open with *Show child attributes*, `oneOf`/`anyOf` get a switcher,
+    `allOf` is merged
+  - the **responses** with their descriptions, headers and schemas
+  - a **request sample** in cURL, JavaScript, Python, Go, PHP or raw HTTP,
+    built from the chosen server and credentials, plus the spec's own
+    `x-codeSamples`; named request examples get a picker
+  - a **response sample** per status code, from the spec's `example` or
+    `examples`, or generated from the schema
+  - **Test Request**, which opens a client to edit parameters, headers and
+    the body, send the request from the browser and read the status, timing,
+    headers and body (`Ctrl`/`⌘` + `Enter` sends)
+- **Models:** every schema in `components.schemas`, collapsible.
 
-Each operation page has:
+In the sidebar the page lists its tags, operations (with their methods) and
+models, and follows the one you are reading.
 
-- the method and path, as a coloured badge
-- a **Deprecated** callout when the operation is deprecated
-- the summary and description
-- a parameters table (name, location, type, required, description), with
-  path-level parameters merged in
-- the request body as a property table, nested objects flattened with dot
-  paths (`owner.email`), up to four levels deep
-- every response with its description, schema table and an example body
-- example requests in **curl**, **JavaScript** and **Go** tabs
-
-Slugs come from `operationId`, or from the method and path when there is none.
-Examples come from the schema's `example`, `examples`, `default` or first
-`enum` value, and otherwise from placeholders for its type. Local `$ref`s
-(`#/components/...`) are resolved, `allOf` is merged, and recursive schemas are
-cut off where they repeat.
+<Callout type="info" title="Credentials stay in the tab">
+Tokens and keys entered under Authentication live in the browser tab's
+session storage only. They are never sent to jevidocs, only to the API
+you test. Test Request is a plain browser `fetch`, so the API must allow
+requests from the docs site's origin (CORS).
+</Callout>
 
 ## Importing
 
-<Tabs items="Admin,CLI,HTTP">
+Importing makes the page at a prefix (default `api-reference`) the reference.
+The page's title and description default to the spec's `info.title` and
+`info.summary`.
+
+<Tabs items="Admin,CLI,HTTP,Files">
 <Tab value="Admin">
 
 Open a project in the [admin](/docs/admin), click **Import OpenAPI**, choose
@@ -74,8 +85,23 @@ curl -X POST https://api.jevidocs.jevido.app/api/admin/projects/my-api/openapi \
 The answer counts what changed:
 
 ```json
-{ "created": 7, "updated": 0, "unchanged": 0, "deleted": 0 }
+{ "created": 1, "updated": 0, "unchanged": 0, "deleted": 0 }
 ```
+
+</Tab>
+<Tab value="Files">
+
+In a folder you sync (`jevidocs push`, a GitHub source), a file named
+`<slug>.openapi.yaml`, `.openapi.yml` or `.openapi.json` is an OpenAPI page:
+
+<Files>
+<Folder name="docs" defaultOpen>
+<File name="index.md" />
+<File name="reference.openapi.yaml" />
+</Folder>
+</Files>
+
+`jevidocs pull` and the admin's export write OpenAPI pages back the same way.
 
 </Tab>
 </Tabs>
@@ -85,20 +111,29 @@ An example spec, for jevidocs' own public API, lives in the repository at
 
 ## Re-importing
 
-Import again whenever the spec changes. Pages under the prefix are created,
-updated or left alone, and pages the spec no longer produces are deleted.
-Pages **outside** the prefix are never touched, so hand-written guides can
-live next to the generated reference.
+Import again whenever the spec changes: the page is updated in place and keeps
+the title, description and position you gave it in the admin. Pages
+**below** the prefix are deleted (earlier versions of jevidocs generated a
+page per operation there). Pages elsewhere are never touched, so
+hand-written guides can live next to the reference.
 
-<Callout type="warn" title="Edits are overwritten">
-Changes made to generated pages in the admin are replaced on the next import.
-Put extra prose in the spec's `description` fields, or in pages outside the
-prefix.
-</Callout>
+In the admin, the page's body is the OpenAPI document itself; editing it
+there works too, and its preview shows the Markdown agents receive.
+
+## Linking to an operation
+
+Each tag, operation and model has an anchor, Scalar-style:
+
+| What | Anchor |
+| ---- | ------ |
+| Tag | `#tag/pets` |
+| Operation | `#tag/pets/GET/pets/{petId}` |
+| Model | `#model/Pet` |
 
 ## Limits
 
 - Swagger 2.0 documents are rejected; convert them to OpenAPI 3 first.
 - External `$ref`s (other files or URLs) are not fetched.
-- The import runs inside the API's request timeout, so very large specs may
-  need splitting by prefix.
+- Webhooks and callbacks are not shown yet.
+- OAuth 2 and OpenID Connect schemes take a ready access token; there is no
+  authorization flow in the page.
