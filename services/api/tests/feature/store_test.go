@@ -3,6 +3,7 @@ package feature
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -99,6 +100,52 @@ func (s *StoreTestSuite) TestPagesTreeSearchAndSync() {
 
 	_, err = store.FindPage(s.project, "guides/install")
 	s.ErrorIs(err, store.ErrNotFound)
+}
+
+func (s *StoreTestSuite) TestOpenAPIPages() {
+	spec, err := os.ReadFile("../../app/openapi/testdata/petstore.yaml")
+	s.Require().NoError(err)
+	// A page from an earlier per-operation import, which the reference replaces.
+	_, err = store.SavePage(s.project, store.PageInput{Slug: "api-reference/pets/listpets", Title: "Old", Body: "x"}, nil)
+	s.Require().NoError(err)
+
+	res, err := store.ImportOpenAPI(s.project, spec, "")
+	s.Require().NoError(err)
+	s.Equal(store.SyncResult{Created: 1, Deleted: 1}, res)
+
+	view, err := store.ViewPage(s.project, "api-reference")
+	s.Require().NoError(err)
+	s.Equal("openapi", view.Kind)
+	s.Equal("Swagger Petstore", view.Title)
+	s.Contains(string(view.API), `"id":"tag/pets/POST/pets"`)
+	s.Contains(view.Markdown, "### Create a pet")
+	s.Empty(view.HTML)
+
+	hits, err := store.Search(s.project, "Create a pet", 10)
+	s.Require().NoError(err)
+	var hashes []string
+	for _, h := range hits {
+		hashes = append(hashes, h.Hash)
+	}
+	s.Contains(hashes, "tag/pets/POST/pets", "operations are heading results")
+
+	res, err = store.ImportOpenAPI(s.project, spec, "")
+	s.Require().NoError(err)
+	s.Equal(1, res.Unchanged)
+
+	// Saving through the admin keeps the kind; a broken spec is rejected.
+	pg, err := store.FindPage(s.project, "api-reference")
+	s.Require().NoError(err)
+	_, err = store.SavePage(s.project, store.PageInput{Slug: pg.Slug, Title: pg.Title, Body: "openapi: 2.0"}, &pg)
+	s.Error(err)
+
+	// Spec files sync as OpenAPI pages.
+	sync, err := store.SyncPages(s.project, fstest.MapFS{"shop.openapi.yaml": {Data: spec}}, false)
+	s.Require().NoError(err)
+	s.Equal(1, sync.Created)
+	shop, err := store.FindPage(s.project, "shop")
+	s.Require().NoError(err)
+	s.Equal(store.KindOpenAPI, shop.Kind)
 }
 
 func (s *StoreTestSuite) TestTokens() {

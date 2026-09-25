@@ -114,6 +114,8 @@ type Page = {
   previous: { title: string; slug: string } | null;
   next: { title: string; slug: string } | null;
   markdown: string;                  // source without front matter
+  kind: '' | 'openapi';              // see "OpenAPI pages"
+  api?: Reference;                   // openapi pages only
   updated_at: string;
 }
 
@@ -211,6 +213,62 @@ allowed domains read it like members.
 | GET | `/api/admin/projects/{project}/shares` | → `{id, name, expires_at, last_used_at, created_at}[]` |
 | POST | `/api/admin/projects/{project}/shares` | `{name, expires_days}` (0 = never) → `{id, name, token, url}` once (admin) |
 | DELETE | `/api/admin/projects/{project}/shares/{id}` | → `{ok}` (admin) |
+
+### OpenAPI pages
+
+A page of kind `openapi` has an OpenAPI 3 document (JSON or YAML) as its
+body instead of Markdown. On save the API derives a `Reference`
+(`app/openapi/reference.go`), search sections per tag, operation and model,
+and Markdown for `markdown`, `llms.txt`, `page.md` and MCP. Its `html` and
+`toc` are empty; the site renders `api`.
+
+`POST /api/admin/projects/{project}/openapi` `{spec, prefix}` makes the page
+at `prefix` such a page (and deletes pages below it). Syncs treat
+`*.openapi.{json,yaml,yml}` files as OpenAPI pages; exports write them back.
+Page inputs take `kind` (`""` or `"openapi"`; omitted keeps the current one),
+and `POST /api/admin/preview` takes `{body, kind}`.
+
+```ts
+type Reference = {
+  openapi: string; title: string; version: string;
+  description: string;                              // HTML
+  servers: { url: string; description?: string;
+    variables?: { name: string; default: string; enum?: string[] }[] }[];
+  security_schemes: { key: string; type: string; scheme?: string; bearer_format?: string;
+    in?: string; name?: string; description?: string }[];
+  tags: { id: string; name: string; description?: string; operations: Operation[] }[];
+  models: { id: string; name: string }[];          // components.schemas, in order
+  schemas: Record<string, Schema>;                  // targets of Schema.ref
+}
+type Operation = {
+  id: string;                       // element id: "tag/pets/GET/pets/{petId}"
+  method: string; path: string; operation_id?: string; summary: string;
+  description?: string; deprecated?: boolean;
+  security: string[];               // scheme keys that authorize it; [] = none
+  parameters: { name: string; in: 'path' | 'query' | 'header' | 'cookie';
+    description?: string; required?: boolean; schema?: Schema; example?: unknown }[];
+  request_body?: { description?: string; required?: boolean; content: Media[] };
+  responses: { status: string; description?: string; headers?: Parameter[]; content?: Media[] }[];
+  code_samples?: { lang: string; label?: string; source: string }[]; // x-codeSamples
+}
+type Media = { type: string; schema?: Schema; examples?: { name: string; summary?: string; value: unknown }[] }
+type Schema = {
+  ref?: string;                     // a name in Reference.schemas; nothing else set
+  type?: string; format?: string; title?: string; description?: string;
+  enum?: unknown[]; default?: unknown; example?: unknown;
+  nullable?: boolean; read_only?: boolean; write_only?: boolean; deprecated?: boolean;
+  constraints?: string[];           // "min: 1", "max length: 64", "pattern: ^a"
+  properties?: { name: string; required?: boolean; schema: Schema }[];
+  additional_properties?: Schema; items?: Schema;
+  composition?: 'oneOf' | 'anyOf' | 'allOf'; variants?: Schema[];
+  truncated?: boolean;              // nested too deeply
+}
+```
+
+Descriptions are HTML rendered from the spec's CommonMark. Property order,
+tag order and response order follow the document; `allOf` is merged, local
+`$ref`s are resolved and named schemas stay references, so recursive schemas
+are fine.
 
 ### Page tree rules
 

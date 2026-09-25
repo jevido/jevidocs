@@ -56,7 +56,7 @@ func PageMarkdown(pg models.Page, url string) string {
 	if url != "" {
 		fmt.Fprintf(&b, "Source: %s\n\n", url)
 	}
-	b.WriteString(strings.TrimSpace(pg.Body))
+	b.WriteString(strings.TrimSpace(MarkdownOf(pg)))
 	b.WriteString("\n")
 	return b.String()
 }

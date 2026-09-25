@@ -125,7 +125,7 @@ func registerDocsTools(server *mcp.Server) {
 		if err != nil {
 			return nil, readPageOut{}, err
 		}
-		return nil, readPageOut{Title: pg.Title, Description: pg.Description, URL: store.PageURL(p, pg.Slug), Markdown: pg.Body}, nil
+		return nil, readPageOut{Title: pg.Title, Description: pg.Description, URL: store.PageURL(p, pg.Slug), Markdown: store.MarkdownOf(pg)}, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{

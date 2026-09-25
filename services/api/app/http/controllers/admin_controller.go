@@ -130,6 +130,7 @@ type adminPage struct {
 	Published   bool   `json:"published"`
 	Root        bool   `json:"root"`
 	Locale      string `json:"locale"`
+	Kind        string `json:"kind"`
 	Body        string `json:"body,omitempty"`
 	UpdatedBy   string `json:"updated_by,omitempty"` // editor's name
 	CreatedAt   string `json:"created_at"`
@@ -138,7 +139,7 @@ type adminPage struct {
 
 func viewAdminPage(p models.Project, pg models.Page, withBody bool) adminPage {
 	v := adminPage{ID: pg.ID, Project: p.Slug, Slug: pg.Slug, Title: pg.Title, Description: pg.Description,
-		Icon: pg.Icon, Position: pg.Position, Section: pg.Section, Published: pg.Published, Root: pg.Root, Locale: pg.Locale}
+		Icon: pg.Icon, Position: pg.Position, Section: pg.Section, Published: pg.Published, Root: pg.Root, Locale: pg.Locale, Kind: pg.Kind}
 	if withBody {
 		v.Body = pg.Body
 		if pg.UpdatedBy != nil {
@@ -253,11 +254,12 @@ func (r *AdminController) DeletePage(ctx http.Context) http.Response {
 func (r *AdminController) Preview(ctx http.Context) http.Response {
 	var in struct {
 		Body string `json:"body"`
+		Kind string `json:"kind"`
 	}
 	if err := ctx.Request().Bind(&in); err != nil {
 		return ctx.Response().Json(http.StatusBadRequest, http.Json{"error": "invalid body"})
 	}
-	out, err := store.Preview(in.Body)
+	out, err := store.Preview(in.Kind, in.Body)
 	if err != nil {
 		return fail(ctx, err)
 	}

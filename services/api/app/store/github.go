@@ -162,7 +162,8 @@ func ExtractMarkdown(r io.Reader, dir string) (fstest.MapFS, error) {
 			rel = strings.TrimPrefix(name, dir+"/")
 		}
 		ext := path.Ext(rel)
-		if ext != ".md" && ext != ".mdx" || h.Size > sourceMaxFile {
+		_, spec := openAPIFile(rel)
+		if ext != ".md" && ext != ".mdx" && !spec || h.Size > sourceMaxFile {
 			continue
 		}
 		if len(out) >= sourceMaxFiles {

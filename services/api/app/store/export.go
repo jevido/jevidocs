@@ -14,6 +14,7 @@ import (
 
 // Export zips every page of p (all locales) as Markdown files with front
 // matter, laid out like `jevidocs pull`, plus project.json with settings.
+// OpenAPI pages are exported as their spec (<slug>.openapi.yaml or .json).
 func Export(p models.Project) ([]byte, error) {
 	var pages []models.Page
 	if err := facades.Orm().Query().Where("project_id", p.ID).Order("slug asc").Get(&pages); err != nil {
@@ -45,11 +46,19 @@ func Export(p models.Project) ([]byte, error) {
 		if pg.Locale != "" {
 			name += "." + pg.Locale
 		}
-		w, err := zw.Create(name + ".md")
+		file, content := name+".md", exportFile(pg)
+		if pg.Kind == KindOpenAPI {
+			// The spec as it was imported; syncs read it back by suffix.
+			file, content = name+".openapi.yaml", pg.Body
+			if strings.HasPrefix(strings.TrimSpace(pg.Body), "{") {
+				file = name + ".openapi.json"
+			}
+		}
+		w, err := zw.Create(file)
 		if err != nil {
 			return nil, err
 		}
-		_, _ = w.Write([]byte(exportFile(pg)))
+		_, _ = w.Write([]byte(content))
 	}
 	if err := zw.Close(); err != nil {
 		return nil, err

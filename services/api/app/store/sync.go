@@ -11,7 +11,8 @@ import (
 	"dev.jevido/jevidocs/services/api/app/models"
 )
 
-// SyncProject makes a managed project's pages match the Markdown files in
+// SyncProject makes a managed project's pages match the Markdown files (and
+// OpenAPI documents named *.openapi.{json,yaml,yml}) in
 // fsys: `guides/index.md` becomes slug `guides`, `index.md` the project
 // index. Pages without a file are removed, so the files are the source of
 // truth. Unchanged pages are not rewritten.
@@ -88,14 +89,21 @@ func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (Syn
 	seen := map[string]bool{}
 
 	err = fs.WalkDir(fsys, ".", func(file string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || (path.Ext(file) != ".md" && path.Ext(file) != ".mdx") {
+		if err != nil || d.IsDir() {
 			return err
+		}
+		asMarkdown, isSpec := openAPIFile(file)
+		if !isSpec && path.Ext(file) != ".md" && path.Ext(file) != ".mdx" {
+			return nil
 		}
 		raw, err := fs.ReadFile(fsys, file)
 		if err != nil {
 			return err
 		}
-		stripped, locale := splitLocaleFile(p, file)
+		stripped, locale := splitLocaleFile(p, asMarkdown)
+		if isSpec {
+			return syncSpecFile(p, file, docs.NormalizeSlug(stripped), locale, plainText(string(raw)), bySlug[key(locale, docs.NormalizeSlug(stripped))], seen, key, &res)
+		}
 		pageSlug := docs.NormalizeSlug(stripped)
 		seen[key(locale, pageSlug)] = true
 		fm, _ := docs.SplitFrontMatter(string(raw))
@@ -149,4 +157,37 @@ func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (Syn
 		}
 	}
 	return res, nil
+}
+
+// syncSpecFile creates or updates the OpenAPI page of one spec file. Its
+// title, description and position come from the spec or the admin, as the
+// file has no front matter.
+func syncSpecFile(p models.Project, file, slug, locale, body string, cur models.Page, seen map[string]bool, key func(string, string) string, res *SyncResult) error {
+	seen[key(locale, slug)] = true
+	kind, pub := KindOpenAPI, true
+	in := PageInput{Slug: slug, Body: body, SourcePath: file, Locale: &locale, Kind: &kind, Published: &pub}
+	if cur.ID == 0 {
+		if _, err := SavePage(p, in, nil); err != nil {
+			return fmt.Errorf("%s: %w", file, err)
+		}
+		res.Created++
+		return nil
+	}
+	var full models.Page
+	if err := facades.Orm().Query().Where("id", cur.ID).First(&full); err != nil {
+		return err
+	}
+	if full.Kind == KindOpenAPI && full.Body == body && full.Published && full.SourcePath == file {
+		res.Unchanged++
+		return nil
+	}
+	in.Position, in.Icon, in.Section = full.Position, full.Icon, full.Section
+	if full.Kind == KindOpenAPI {
+		in.Title, in.Description = full.Title, full.Description
+	}
+	if _, err := SavePage(p, in, &full); err != nil {
+		return fmt.Errorf("%s: %w", file, err)
+	}
+	res.Updated++
+	return nil
 }

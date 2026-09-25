@@ -25,8 +25,9 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-// RenderVersion changes whenever the output of Render changes for the same
-// input. Stored pages from an older version are re-rendered on start.
+// RenderVersion changes whenever the output of Render (or of openapi.Build,
+// for OpenAPI pages) changes for the same input. Stored pages from an older
+// version are re-rendered on start.
 const RenderVersion = 3
 
 // TocItem is one heading in a page's table of contents.

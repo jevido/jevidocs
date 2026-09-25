@@ -23,5 +23,6 @@ func Migrations() []schema.Migration {
 		&migrations.M20260924000070AddUserRoles{},
 		&migrations.M20260924000080CreateAccessTables{},
 		&migrations.M20260924000090AddProjectDomains{},
+		&migrations.M20260925000010AddPageKinds{},
 	}
 }

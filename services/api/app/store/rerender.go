@@ -1,8 +1,6 @@
 package store
 
 import (
-	"encoding/json"
-
 	"dev.jevido/jevidocs/services/api/app/docs"
 	"dev.jevido/jevidocs/services/api/app/facades"
 	"dev.jevido/jevidocs/services/api/app/models"
@@ -17,15 +15,14 @@ func RerenderStale() (int, error) {
 		return 0, err
 	}
 	for _, pg := range pages {
-		r, err := docs.Render(pg.Body)
+		r, err := renderBody(pg.Kind, pg.Body)
 		if err != nil {
 			return 0, err
 		}
-		toc, _ := json.Marshal(nonNil(r.Toc))
-		secs, _ := json.Marshal(nonNil(r.Sections))
+		r.apply(&pg)
 		if _, err := facades.Orm().Query().Exec(
-			`UPDATE pages SET html = ?, toc = ?, sections = ?, plain = ?, render_version = ? WHERE id = ?`,
-			r.HTML, string(toc), string(secs), r.Plain, docs.RenderVersion, pg.ID); err != nil {
+			`UPDATE pages SET html = ?, toc = ?, sections = ?, plain = ?, api = ?, markdown = ?, render_version = ? WHERE id = ?`,
+			pg.HTML, pg.Toc, pg.Sections, pg.Plain, pg.API, pg.Markdown, pg.RenderVersion, pg.ID); err != nil {
 			return 0, err
 		}
 	}

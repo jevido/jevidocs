@@ -285,7 +285,11 @@ type PageView struct {
 	Previous    *docs.Link     `json:"previous"`
 	Next        *docs.Link     `json:"next"`
 	Markdown    string         `json:"markdown"`
-	Locale      string         `json:"locale"`
+	// Kind is "" or "openapi"; an OpenAPI page carries its reference in API
+	// (see openapi.Reference) and has no HTML.
+	Kind   string          `json:"kind"`
+	API    json.RawMessage `json:"api,omitempty"`
+	Locale string          `json:"locale"`
 	// Fallback is set when the page has no translation in the requested
 	// locale and the default-locale page is shown instead.
 	Fallback bool `json:"fallback"`
@@ -330,9 +334,12 @@ func viewOf(p models.Project, pg models.Page) (PageView, error) {
 		return PageView{}, err
 	}
 	v := PageView{Slug: pg.Slug, Title: pg.Title, Description: pg.Description, Icon: pg.Icon, HTML: pg.HTML,
-		Markdown: pg.Body, URL: PageURL(p, pg.Slug), Toc: []docs.TocItem{},
+		Kind: pg.Kind, Markdown: MarkdownOf(pg), URL: PageURL(p, pg.Slug), Toc: []docs.TocItem{},
 		Locale: p.Locale, Fallback: p.Locale != "" && pg.Locale != p.Locale}
 	_ = json.Unmarshal([]byte(pg.Toc), &v.Toc)
+	if pg.Kind == KindOpenAPI && pg.API != "" {
+		v.API = json.RawMessage(pg.API)
+	}
 	v.Breadcrumbs = tree.Breadcrumbs(pg.Slug, pg.Title)
 	v.Previous, v.Next = tree.Neighbours(pg.Slug)
 	v.EditURL = EditURL(p, pg)
@@ -377,6 +384,9 @@ type PageInput struct {
 	// Locale of a new page ('' or the default = default locale); nil means
 	// the project's request locale. Ignored on updates.
 	Locale *string `json:"locale"`
+	// Kind is "" (Markdown) or "openapi" (Body is an OpenAPI document); nil
+	// keeps the current kind, and new pages are Markdown.
+	Kind *string `json:"kind"`
 	// SourcePath is set by file syncs; empty keeps the current value.
 	SourcePath string `json:"-"`
 }
@@ -408,18 +418,26 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 			return pg, ValidationError{fmt.Sprintf("a page with slug %q already exists", slug)}
 		}
 	}
-	fm, body := docs.SplitFrontMatter(in.Body)
-	title := firstNonEmpty(in.Title, fm.Title)
+	kind := pg.Kind
+	if in.Kind != nil {
+		kind = *in.Kind
+	}
+	// An OpenAPI document has no front matter; its metadata is in info.
+	fm, body := docs.FrontMatter{}, plainText(in.Body)
+	if kind == KindMarkdown {
+		fm, body = docs.SplitFrontMatter(in.Body)
+	}
+	r, err := renderBody(kind, body)
+	if err != nil {
+		return pg, err
+	}
+	title := firstNonEmpty(in.Title, fm.Title, r.Title)
 	if title == "" {
 		return pg, ValidationError{"title is required"}
 	}
 	prev := pg // the stored state, for the revision history
-	r, err := docs.Render(body)
-	if err != nil {
-		return pg, err
-	}
-	pg.Slug, pg.Title = slug, title
-	pg.Description = firstNonEmpty(in.Description, fm.Description)
+	pg.Slug, pg.Title, pg.Kind = slug, title, kind
+	pg.Description = firstNonEmpty(in.Description, fm.Description, r.Summary)
 	pg.Icon = firstNonEmpty(in.Icon, fm.Icon)
 	pg.Section = firstNonEmpty(in.Section, fm.Section)
 	pg.Position = in.Position
@@ -430,13 +448,7 @@ func SavePage(p models.Project, in PageInput, existing *models.Page) (models.Pag
 		pg.Published = *in.Published
 	}
 	pg.Body = body
-	pg.HTML = r.HTML
-	pg.Plain = r.Plain
-	toc, _ := json.Marshal(nonNil(r.Toc))
-	pg.Toc = string(toc)
-	secs, _ := json.Marshal(nonNil(r.Sections))
-	pg.Sections = string(secs)
-	pg.RenderVersion = docs.RenderVersion
+	r.apply(&pg)
 	switch {
 	case in.Root != nil:
 		pg.Root = *in.Root
@@ -510,8 +522,16 @@ func DeletePage(p models.Project, pg models.Page) error {
 	return err
 }
 
-// Preview renders Markdown without saving it.
-func Preview(body string) (docs.Rendered, error) {
+// Preview renders a page body without saving it. An OpenAPI document
+// previews as its generated Markdown.
+func Preview(kind, body string) (docs.Rendered, error) {
+	if kind == KindOpenAPI {
+		r, err := renderBody(kind, body)
+		if err != nil {
+			return docs.Rendered{}, err
+		}
+		return docs.Render(r.Markdown)
+	}
 	_, b := docs.SplitFrontMatter(body)
 	return docs.Render(b)
 }

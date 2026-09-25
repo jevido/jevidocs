@@ -9,10 +9,11 @@ import (
 	"dev.jevido/jevidocs/services/api/app/openapi"
 )
 
-// ImportOpenAPI generates an API reference from an OpenAPI 3 document into
-// pages under prefix: new pages are created, changed ones updated, and pages
-// under prefix the spec no longer produces are deleted. Pages outside prefix
-// are never touched.
+// ImportOpenAPI makes the page at prefix an OpenAPI page for spec: one page
+// holding the whole reference, created or updated in place. Pages below
+// prefix are deleted, since the reference owns that part of the tree (older
+// imports generated a page per operation there). Pages outside prefix are
+// never touched.
 func ImportOpenAPI(p models.Project, spec []byte, prefix string) (SyncResult, error) {
 	var res SyncResult
 	prefix = docs.NormalizeSlug(prefix)
@@ -22,55 +23,45 @@ func ImportOpenAPI(p models.Project, spec []byte, prefix string) (SyncResult, er
 	if !pageSlugRe.MatchString(prefix) {
 		return res, ValidationError{"prefix must be a path of lowercase segments, like api-reference"}
 	}
-	base := strings.TrimPrefix(PageURL(p, ""), SiteURL())
-	pages, err := openapi.Generate(spec, prefix, base)
-	if err != nil {
-		return res, ValidationError{err.Error()}
-	}
-
 	existing, err := AdminPages(p)
 	if err != nil {
 		return res, err
 	}
-	bySlug := map[string]models.Page{}
+	var cur *models.Page
 	for _, pg := range existing {
-		if pg.Slug == prefix || strings.HasPrefix(pg.Slug, prefix+"/") {
-			bySlug[pg.Slug] = pg
-		}
-	}
-	seen := map[string]bool{}
-	pub := true
-	for _, g := range pages {
-		seen[g.Slug] = true
-		in := PageInput{Slug: g.Slug, Title: g.Title, Description: g.Description, Position: g.Position, Body: g.Body, Published: &pub}
-		cur, ok := bySlug[g.Slug]
-		if !ok {
-			if _, err := SavePage(p, in, nil); err != nil {
+		switch {
+		case pg.Slug == prefix:
+			var full models.Page
+			if err := facades.Orm().Query().Where("id", pg.ID).First(&full); err != nil {
 				return res, err
 			}
-			res.Created++
-			continue
-		}
-		var full models.Page
-		if err := facades.Orm().Query().Where("id", cur.ID).First(&full); err != nil {
-			return res, err
-		}
-		if full.Body == g.Body && full.Title == g.Title && full.Description == g.Description && full.Position == g.Position && full.Published {
-			res.Unchanged++
-			continue
-		}
-		if _, err := SavePage(p, in, &full); err != nil {
-			return res, err
-		}
-		res.Updated++
-	}
-	for slug, pg := range bySlug {
-		if !seen[slug] {
+			cur = &full
+		case strings.HasPrefix(pg.Slug, prefix+"/"):
 			if err := DeletePage(p, pg); err != nil {
 				return res, err
 			}
 			res.Deleted++
 		}
 	}
-	return res, nil
+
+	body := plainText(string(spec))
+	kind, pub := KindOpenAPI, true
+	in := PageInput{Slug: prefix, Body: body, Kind: &kind, Published: &pub, Position: 100}
+	if cur == nil {
+		_, err = SavePage(p, in, nil)
+		res.Created++
+		return res, err
+	}
+	// Title, description and position set in the admin survive re-imports.
+	in.Position = cur.Position
+	if cur.Kind == KindOpenAPI {
+		in.Title, in.Description = cur.Title, cur.Description
+		if cur.Body == body && cur.Published {
+			res.Unchanged++
+			return res, nil
+		}
+	}
+	_, err = SavePage(p, in, cur)
+	res.Updated++
+	return res, err
 }

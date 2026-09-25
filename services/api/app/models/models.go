@@ -53,8 +53,8 @@ type Project struct {
 	Managed bool `json:"managed"`
 }
 
-// Page is one Markdown page of a project. HTML, Toc, Sections and Plain are
-// derived from Body whenever it is saved.
+// Page is one page of a project. HTML, Toc, Sections, Plain, API and
+// Markdown are derived from Body whenever it is saved.
 type Page struct {
 	orm.Model
 	ProjectID   uint   `json:"-"`
@@ -81,6 +81,12 @@ type Page struct {
 	Root bool `json:"root"`
 	// Locale is '' for the project's default locale, else e.g. "nl".
 	Locale string `json:"locale"`
+	// Kind is '' for Markdown, or "openapi" when Body is an OpenAPI
+	// document; then API is its reference (JSON) and Markdown the text
+	// served to agents and llms.txt.
+	Kind     string `json:"kind"`
+	API      string `gorm:"column:api" json:"-"`
+	Markdown string `json:"-"`
 }
 
 // User is an admin account.
