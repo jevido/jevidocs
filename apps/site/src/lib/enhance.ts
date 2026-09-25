@@ -202,6 +202,66 @@ function loadElk(m: Mermaid): Promise<void> {
   return elk
 }
 
+// Mermaid's `base` theme with the site's neutral tokens (app.css), so
+// diagrams read as part of the page. Mermaid derives shades from these, so
+// they must be concrete colours, not CSS variables.
+function diagramTheme(dark: boolean) {
+  const c = dark
+    ? { bg: '#121212', node: '#1a1a1a', border: '#3d3d3d', text: '#ebebeb', muted: '#a3a3a3', line: '#6b6b6b', group: '#161616', shadow: 'rgb(0 0 0 / 0.5)' }
+    : { bg: '#fafafa', node: '#ffffff', border: '#d9d9d9', text: '#0a0a0a', muted: '#616161', line: '#a3a3a3', group: '#f3f3f3', shadow: 'rgb(0 0 0 / 0.08)' }
+  return {
+    theme: 'base',
+    fontFamily: 'inherit',
+    themeVariables: {
+      darkMode: dark,
+      background: c.bg,
+      fontSize: '14px',
+      primaryColor: c.node,
+      primaryBorderColor: c.border,
+      primaryTextColor: c.text,
+      secondaryColor: c.group,
+      secondaryBorderColor: c.border,
+      secondaryTextColor: c.text,
+      tertiaryColor: c.group,
+      tertiaryBorderColor: c.border,
+      tertiaryTextColor: c.text,
+      lineColor: c.line,
+      textColor: c.text,
+      clusterBkg: c.group,
+      clusterBorder: c.border,
+      edgeLabelBackground: c.bg,
+      noteBkgColor: c.group,
+      noteBorderColor: c.border,
+      noteTextColor: c.text,
+      actorBkg: c.node,
+      actorBorder: c.border,
+      actorTextColor: c.text,
+      actorLineColor: c.line,
+      signalColor: c.muted,
+      signalTextColor: c.text,
+      labelBoxBkgColor: c.node,
+      labelBoxBorderColor: c.border,
+      labelTextColor: c.text,
+      loopTextColor: c.muted,
+      activationBkgColor: c.group,
+      activationBorderColor: c.border,
+      sequenceNumberColor: c.bg,
+    },
+    // Rounded, lightly lifted nodes; quiet edge labels.
+    themeCSS: `
+      .node rect.label-container:not([rx]), .node rect.basic:not([rx]),
+      rect.actor, .note, .labelBox { rx: 8px; ry: 8px; }
+      .cluster rect { rx: 12px; ry: 12px; }
+      .node .label-container, rect.actor { filter: drop-shadow(0 1px 2px ${c.shadow}); }
+      .node .nodeLabel, .actor { font-weight: 500; }
+      .flowchart-link, .relation { stroke-width: 1.5px; }
+      .edgeLabel, .edgeLabel p, .labelBkg { background-color: ${c.bg} !important; color: ${c.muted}; font-size: 12px; }
+      .edgeLabel rect { fill: ${c.bg}; }
+      .cluster-label .nodeLabel { color: ${c.muted}; font-size: 12px; font-weight: 500; }
+    `,
+  }
+}
+
 const isDark = () => document.documentElement.classList.contains('dark')
 
 async function renderMermaid(root: ParentNode) {
@@ -211,7 +271,7 @@ async function renderMermaid(root: ParentNode) {
   try {
     const m = await loadMermaid()
     const dark = isDark()
-    m.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict', fontFamily: 'inherit' })
+    m.initialize({ startOnLoad: false, securityLevel: 'strict', ...diagramTheme(dark) })
     for (const block of blocks) {
       const src = block.querySelector('.fd-mermaid-src')?.textContent ?? ''
       if (!src.trim() || block.dataset.theme === String(dark)) continue
