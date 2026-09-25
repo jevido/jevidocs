@@ -38,8 +38,8 @@
     <header><h2>Import OpenAPI</h2></header>
     <div class="body">
       <p class="muted">
-        Generates an API reference (a page per operation, grouped by tag) from an OpenAPI 3 document in JSON or
-        YAML. Re-importing updates the pages and removes ones the spec no longer has.
+        Makes the page at the prefix an interactive API reference, in the style of Scalar, from an OpenAPI 3
+        document in JSON or YAML. Re-importing updates it; pages below the prefix are removed.
       </p>
       <label>
         <span>Prefix</span>

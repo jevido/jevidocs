@@ -41,6 +41,8 @@ export type AdminPageInput = {
 
 export type AdminPage = AdminPageInput & {
   id: number
+  // 'openapi': the body is an OpenAPI document, shown as an API reference.
+  kind?: '' | 'openapi'
   project: string
   updated_by?: string
   updated_at: string

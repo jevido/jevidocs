@@ -65,6 +65,8 @@
   let textarea = $state<HTMLTextAreaElement>()
   let slugTouched = $state(initialId !== 'new')
   let historyOpen = $state(false)
+  // Kind never changes in the editor; OpenAPI pages come from imports.
+  let kind = $state<'' | 'openapi'>('')
 
   function onRestored(p: AdminPage) {
     const input: AdminPageInput = {
@@ -105,6 +107,7 @@
         }
         form = input
         saved = JSON.stringify(input)
+        kind = p.kind ?? ''
         updatedAt = p.updated_at
         updatedBy = p.updated_by ?? ''
       })
@@ -119,10 +122,11 @@
   let previewSeq = 0
   $effect(() => {
     const body = form.body
+    const k = kind
     const timer = setTimeout(() => {
       const seq = ++previewSeq
       api
-        .preview(body)
+        .preview(body, k)
         .then((r) => {
           if (seq !== previewSeq) return
           html = r.html
@@ -310,13 +314,23 @@
     </div>
   </details>
 
+  {#if kind === 'openapi'}
+    <p class="kind-note card">
+      This page is an <strong>OpenAPI reference</strong>: the body below is the OpenAPI document (JSON or YAML), and
+      the docs site shows it as an interactive API reference. The preview shows the Markdown agents and
+      <code>llms.txt</code> get. Re-importing the spec replaces the body.
+    </p>
+  {/if}
+
   <div class="editor card">
     <div class="bar">
+      {#if kind !== 'openapi'}
       <div class="snips">
         {#each snippets as s (s.label)}
           <button class="btn sm ghost" type="button" onclick={() => insert(s.text)}>{s.label}</button>
         {/each}
       </div>
+      {/if}
       <div class="spacer"></div>
       <div class="seg" role="group" aria-label="View">
         {#each ['write', 'split', 'preview'] as const as v (v)}
@@ -333,7 +347,7 @@
           onpaste={onFiles}
           ondrop={onFiles}
           spellcheck="false"
-          aria-label="Markdown"
+          aria-label={kind === 'openapi' ? 'OpenAPI document' : 'Markdown'}
         ></textarea>
       {/if}
       {#if view !== 'write'}
@@ -478,4 +492,5 @@
       border-bottom: 1px solid var(--border);
     }
   }
+  .kind-note { margin: 0 0 1rem; padding: 0.75rem 1rem; font-size: 0.875rem; }
 </style>

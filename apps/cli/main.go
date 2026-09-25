@@ -3,7 +3,7 @@
 // result.
 //
 //	jevidocs init   [dir]             scaffold a docs folder
-//	jevidocs push   [dir] -project p  upload every .md file (optionally prune)
+//	jevidocs push   [dir] -project p  upload every .md and .openapi.{json,yaml,yml} file (optionally prune)
 //	jevidocs pull   [dir] -project p  download every page as .md files
 //	jevidocs search <query> -project p
 //	jevidocs openapi <spec> -project p [-prefix api-reference]
@@ -181,7 +181,7 @@ func runPush(args []string) error {
 			return filepath.SkipDir
 		}
 		ext := filepath.Ext(p)
-		if d.IsDir() || (ext != ".md" && ext != ".mdx") {
+		if d.IsDir() || (ext != ".md" && ext != ".mdx" && !isSpecFile(p)) {
 			return nil
 		}
 		b, err := os.ReadFile(p)
@@ -196,7 +196,7 @@ func runPush(args []string) error {
 		return err
 	}
 	if len(files) == 0 {
-		return fmt.Errorf("no .md files in %s", dir)
+		return fmt.Errorf("no .md or .openapi.* files in %s", dir)
 	}
 	var res struct{ Created, Updated, Unchanged, Deleted int }
 	if err := c.do("PUT", "/api/admin/projects/"+url.PathEscape(project)+"/sync", map[string]any{"files": files, "prune": prune}, &res); err != nil {
@@ -217,6 +217,18 @@ type adminPage struct {
 	Section     string `json:"section"`
 	Published   bool   `json:"published"`
 	Body        string `json:"body"`
+	Kind        string `json:"kind"`
+}
+
+// isSpecFile reports whether p is an OpenAPI page's source, e.g.
+// reference.openapi.yaml for the page at slug "reference".
+func isSpecFile(p string) bool {
+	for _, s := range []string{".openapi.json", ".openapi.yaml", ".openapi.yml"} {
+		if strings.HasSuffix(p, s) {
+			return true
+		}
+	}
+	return false
 }
 
 func runPull(args []string) error {
@@ -254,11 +266,20 @@ func runPull(args []string) error {
 		} else if parents[p.Slug] {
 			name = p.Slug + "/index.md"
 		}
+		content := withFrontMatter(full)
+		if full.Kind == "openapi" {
+			// An OpenAPI page is its spec; push reads it back by suffix.
+			ext := ".openapi.yaml"
+			if strings.HasPrefix(strings.TrimSpace(full.Body), "{") {
+				ext = ".openapi.json"
+			}
+			name, content = strings.TrimSuffix(name, ".md")+ext, full.Body
+		}
 		target := filepath.Join(dir, filepath.FromSlash(name))
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			return err
 		}
-		if err := os.WriteFile(target, []byte(withFrontMatter(full)), 0o644); err != nil {
+		if err := os.WriteFile(target, []byte(content), 0o644); err != nil {
 			return err
 		}
 		fmt.Println("wrote", target)

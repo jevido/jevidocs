@@ -127,7 +127,8 @@ export const api = {
       `/api/admin/projects/${enc(project)}/openapi`,
       { spec, prefix },
     ),
-  preview: (body: string) => request<{ html: string; toc: TocItem[] }>('POST', '/api/admin/preview', { body }),
+  preview: (body: string, kind = '') =>
+    request<{ html: string; toc: TocItem[] }>('POST', '/api/admin/preview', { body, kind }),
 
   tokens: () => request<Token[]>('GET', '/api/admin/tokens'),
   createToken: (name: string) => request<{ id: number; name: string; token: string }>('POST', '/api/admin/tokens', { name }),
