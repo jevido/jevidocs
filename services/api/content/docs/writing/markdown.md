@@ -116,6 +116,55 @@ graph LR
   Reader --> API
 ```
 
+Diagrams are drawn at full size on a canvas: drag to pan, Ctrl/⌘ + scroll
+(or pinch) to zoom, double-click to zoom in, and use the buttons in the corner
+to fit or go fullscreen.
+
+For larger graphs, switch to the [ELK](https://eclipse.dev/elk/) layout. It
+spaces nodes so they never overlap and routes edges around them:
+
+~~~mdx
+```mermaid
+---
+config:
+  layout: elk
+---
+graph TD
+  Editor -->|save| API
+  MCP -->|update_page| API
+  CLI -->|jevidocs push| API
+  API --> Render[Render Markdown]
+  Render --> TOC
+  Render --> Search[Search sections]
+  Render --> HTML
+  TOC --> Postgres
+  Search --> Postgres
+  HTML --> Postgres
+  Postgres --> Reader
+  Postgres --> LLMs[llms.txt]
+```
+~~~
+
+```mermaid
+---
+config:
+  layout: elk
+---
+graph TD
+  Editor -->|save| API
+  MCP -->|update_page| API
+  CLI -->|jevidocs push| API
+  API --> Render[Render Markdown]
+  Render --> TOC
+  Render --> Search[Search sections]
+  Render --> HTML
+  TOC --> Postgres
+  Search --> Postgres
+  HTML --> Postgres
+  Postgres --> Reader
+  Postgres --> LLMs[llms.txt]
+```
+
 More code block options (line highlights, numbers, diffs, focus) are on
 [Code blocks](/docs/components/code-blocks).
 

@@ -2,6 +2,8 @@
 // "Rendered HTML"). The server emits final markup; we only add copy buttons
 // and wire up tabs.
 
+import { mountCanvas } from './canvas'
+
 const copyIcon =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>'
 const checkIcon =
@@ -171,20 +173,33 @@ export function onContentClick(e: MouseEvent) {
 // ```mermaid fences arrive as <div class="fd-mermaid"><pre class="fd-mermaid-src">.
 // Mermaid (large) is only fetched when a page has a diagram, and diagrams
 // are redrawn when the theme flips. On any error the source stays visible.
+// Each diagram is drawn at its natural size inside a pan/zoom canvas.
+//
+// The ELK layout engine (`layout: elk` in a diagram's config) routes edges
+// around nodes instead of through them; it is only fetched when a diagram
+// asks for it.
 
 type Mermaid = {
   initialize(c: Record<string, unknown>): void
   render(id: string, src: string): Promise<{ svg: string }>
+  registerLayoutLoaders(loaders: unknown): void
 }
 
 const MERMAID_URL = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+const ELK_URL = 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0/dist/mermaid-layout-elk.esm.min.mjs'
 let mermaid: Promise<Mermaid> | null = null
+let elk: Promise<void> | null = null
 let diagramSeq = 0
 let observing = false
 
 function loadMermaid(): Promise<Mermaid> {
   mermaid ??= import(/* @vite-ignore */ MERMAID_URL).then((m) => m.default as Mermaid)
   return mermaid
+}
+
+function loadElk(m: Mermaid): Promise<void> {
+  elk ??= import(/* @vite-ignore */ ELK_URL).then((e) => m.registerLayoutLoaders(e.default))
+  return elk
 }
 
 const isDark = () => document.documentElement.classList.contains('dark')
@@ -201,12 +216,13 @@ async function renderMermaid(root: ParentNode) {
       const src = block.querySelector('.fd-mermaid-src')?.textContent ?? ''
       if (!src.trim() || block.dataset.theme === String(dark)) continue
       try {
+        if (/\belk\b/.test(src)) await loadElk(m).catch(() => {})
         const { svg } = await m.render(`fd-mermaid-${++diagramSeq}`, src)
         block.querySelector('.fd-mermaid-svg')?.remove()
         const holder = document.createElement('div')
         holder.className = 'fd-mermaid-svg'
-        holder.innerHTML = svg
         block.prepend(holder)
+        mountCanvas(holder, svg)
         block.dataset.rendered = ''
         block.dataset.theme = String(dark)
       } catch {

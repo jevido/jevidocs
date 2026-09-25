@@ -163,11 +163,11 @@ await test('site: root toggle lists REST API', async () => {
   assert(items.some((t) => t.includes('REST API')), `menu = ${items.join(' | ')}`)
 })
 
-await test('site: mermaid renders an svg', async () => {
+await test('site: mermaid renders on a canvas', async () => {
   const cdn = await fetch('https://cdn.jsdelivr.net/npm/mermaid@11/package.json').catch(() => null)
   if (!cdn?.ok) throw new Skip('jsdelivr unreachable')
   await goto(page, SITE + '/docs/writing/markdown')
-  await waitFor(async () => (await page.$$('.fd-mermaid svg')).length > 0, 'mermaid svg', 20000)
+  await waitFor(async () => (await page.$$('.fd-mermaid .fd-canvas svg')).length > 0, 'mermaid canvas', 20000)
 })
 
 await test('site: theme toggle', async () => {

@@ -158,7 +158,9 @@ can show them as examples.
 
 A `mermaid` fence becomes a diagram. The reader loads
 [Mermaid](https://mermaid.js.org) only on pages that have one and redraws it
-when the theme changes.
+when the theme changes. Each diagram sits on a pan/zoom canvas at its natural
+size; `layout: elk` in the diagram's config gives overlap-free layouts (see
+[Markdown](/docs/writing/markdown#diagrams)).
 
 ~~~mdx
 ```mermaid
