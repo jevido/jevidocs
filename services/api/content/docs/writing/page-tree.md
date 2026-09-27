@@ -101,5 +101,11 @@ icon: code
   outside any root.
 - Search, breadcrumbs and previous/next still span the whole project.
 
-This site uses one: the [REST API](/docs/api) tab, whose [API reference](/docs/api/reference)
-is imported from an OpenAPI spec on every start.
+A root with an [OpenAPI page](/docs/openapi), as its index or directly
+inside it, opens on the API reference. Its sidebar lists the root's other
+pages, then the API's tags, operations and models in place of the reference's
+own entry, on every page of the root.
+
+This site uses one: the [REST API](/docs/api) tab is the OpenAPI spec
+`api.openapi.json`, with guides like [Authentication](/docs/api/authentication)
+below it.

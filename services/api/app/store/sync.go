@@ -16,10 +16,7 @@ import (
 // fsys: `guides/index.md` becomes slug `guides`, `index.md` the project
 // index. Pages without a file are removed, so the files are the source of
 // truth. Unchanged pages are not rewritten.
-//
-// Pages under keepPrefix (generated elsewhere, e.g. from OpenAPI) survive the
-// pruning.
-func SyncProject(in ProjectInput, fsys fs.FS, keepPrefix string) error {
+func SyncProject(in ProjectInput, fsys fs.FS) error {
 	p, err := FindProject(in.Slug, true)
 	if err != nil && err != ErrNotFound {
 		return err
@@ -56,7 +53,7 @@ func SyncProject(in ProjectInput, fsys fs.FS, keepPrefix string) error {
 		}
 	}
 
-	_, err = syncPages(p, fsys, true, keepPrefix)
+	_, err = syncPages(p, fsys, true)
 	return err
 }
 
@@ -71,10 +68,10 @@ type SyncResult struct {
 // SyncPages makes p's pages match the Markdown files in fsys. With prune,
 // pages that have no file are deleted.
 func SyncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
-	return syncPages(p, fsys, prune, "")
+	return syncPages(p, fsys, prune)
 }
 
-func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (SyncResult, error) {
+func syncPages(p models.Project, fsys fs.FS, prune bool) (SyncResult, error) {
 	var res SyncResult
 	// Every locale at once: guide.nl.md is the nl page of slug "guide".
 	existing, err := AllLocalePages(p)
@@ -145,10 +142,6 @@ func syncPages(p models.Project, fsys fs.FS, prune bool, keepPrefix string) (Syn
 		return res, nil
 	}
 	for k, pg := range bySlug {
-		s := pg.Slug
-		if keepPrefix != "" && (s == keepPrefix || strings.HasPrefix(s, keepPrefix+"/")) {
-			continue
-		}
 		if !seen[k] {
 			if err := DeletePage(p, pg); err != nil {
 				return res, err
@@ -167,6 +160,7 @@ func syncSpecFile(p models.Project, file, slug, locale, body string, cur models.
 	kind, pub := KindOpenAPI, true
 	in := PageInput{Slug: slug, Body: body, SourcePath: file, Locale: &locale, Kind: &kind, Published: &pub}
 	if cur.ID == 0 {
+		in.Root = specRoot(slug)
 		if _, err := SavePage(p, in, nil); err != nil {
 			return fmt.Errorf("%s: %w", file, err)
 		}

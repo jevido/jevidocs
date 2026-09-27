@@ -14,14 +14,17 @@ type PageMeta struct {
 	Section     string
 	Description string
 	Root        bool
+	Kind        string
 }
 
 // Node is one entry of a page tree, shaped like fumadocs' PageTree.
 type Node struct {
-	Type        string  `json:"type"` // page | folder | separator
-	Name        string  `json:"name"`
-	Slug        string  `json:"slug,omitempty"`
-	Icon        string  `json:"icon,omitempty"`
+	Type string `json:"type"` // page | folder | separator
+	Name string `json:"name"`
+	Slug string `json:"slug,omitempty"`
+	Icon string `json:"icon,omitempty"`
+	// Kind is the page's kind ("openapi"), empty for Markdown.
+	Kind        string  `json:"kind,omitempty"`
 	Index       *Node   `json:"index,omitempty"`
 	Children    []*Node `json:"children,omitempty"`
 	DefaultOpen bool    `json:"defaultOpen,omitempty"`
@@ -83,10 +86,15 @@ func BuildTree(name string, pages []PageMeta) Tree {
 			isFolder[parent] = true
 			parent, _ = splitSlug(parent)
 		}
+		// A top-level root page is a tab even with nothing below it, e.g. an
+		// API reference on its own.
+		if p.Root && depth(p.Slug) == 1 {
+			isFolder[p.Slug] = true
+		}
 	}
 
 	for _, p := range sorted {
-		page := &Node{Type: "page", Name: p.Title, Slug: p.Slug, Icon: p.Icon, position: p.Position, path: p.Slug, section: p.Section}
+		page := &Node{Type: "page", Name: p.Title, Slug: p.Slug, Icon: p.Icon, Kind: p.Kind, position: p.Position, path: p.Slug, section: p.Section}
 		if p.Slug == "" {
 			rootIndex = page
 			continue
@@ -98,7 +106,7 @@ func BuildTree(name string, pages []PageMeta) Tree {
 			if f.Root {
 				f.Description = p.Description
 			}
-			f.Index = &Node{Type: "page", Name: p.Title, Slug: p.Slug, Icon: p.Icon}
+			f.Index = &Node{Type: "page", Name: p.Title, Slug: p.Slug, Icon: p.Icon, Kind: p.Kind}
 			continue
 		}
 		parentPath, _ := splitSlug(p.Slug)

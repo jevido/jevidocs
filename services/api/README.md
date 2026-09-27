@@ -101,10 +101,10 @@ type VersionLink = { slug: string; name: string; label: string; url: string } //
 
 type PageTree = { name: string; children: TreeNode[] }
 type TreeNode =
-  | { type: 'page'; name: string; slug: string; icon?: string }
+  | { type: 'page'; name: string; slug: string; icon?: string; kind?: 'openapi' }
   | { type: 'separator'; name: string }
-  | { type: 'folder'; name: string; icon?: string; index?: { type: 'page'; name: string; slug: string };
-      children: TreeNode[]; defaultOpen: boolean }
+  | { type: 'folder'; name: string; icon?: string; index?: { type: 'page'; name: string; slug: string; kind?: 'openapi' };
+      children: TreeNode[]; defaultOpen: boolean; root?: boolean; description?: string }
 
 type Page = {
   slug: string; title: string; description: string; icon: string;
@@ -279,6 +279,11 @@ are fine.
   position (or its lowest child's).
 - A top-level page with a non-empty `section` different from the previous
   sibling's starts a separator with that name.
+- A top-level folder whose index page has `root` is a root (`root: true`,
+  with the index's `description`). A top-level `root` page is a root even
+  without children. Top-level OpenAPI pages are created with `root` on.
+- `kind` is set on OpenAPI pages, so a reader knows a root opens on an API
+  reference before fetching it.
 
 ### Rendered HTML
 

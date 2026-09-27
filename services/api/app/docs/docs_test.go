@@ -91,6 +91,29 @@ func TestTree(t *testing.T) {
 	}
 }
 
+func TestTreeRoots(t *testing.T) {
+	tree := BuildTree("Docs", []PageMeta{
+		{Slug: "api", Title: "API", Root: true, Kind: "openapi"},
+		{Slug: "api/auth", Title: "Auth"},
+		{Slug: "sdk", Title: "SDK", Root: true},
+		{Slug: "guides/deep", Title: "Deep", Root: true},
+	})
+	byName := map[string]*Node{}
+	for _, n := range tree.Children {
+		byName[n.Name] = n
+	}
+	api := byName["API"]
+	if api == nil || api.Type != "folder" || !api.Root || api.Index.Kind != "openapi" || len(api.Children) != 1 {
+		t.Errorf("api = %+v", api)
+	}
+	if sdk := byName["SDK"]; sdk == nil || sdk.Type != "folder" || !sdk.Root || sdk.Index.Slug != "sdk" || len(sdk.Children) != 0 {
+		t.Errorf("childless root = %+v", sdk)
+	}
+	if g := byName["Guides"]; g == nil || g.Root || g.Children[0].Type != "page" {
+		t.Errorf("nested root page must stay a page: %+v", g)
+	}
+}
+
 func TestNormalizeSlug(t *testing.T) {
 	for in, want := range map[string]string{"/index": "", "guides/index.md": "guides", "/A/b/": "a/b"} {
 		if got := NormalizeSlug(in); got != want {

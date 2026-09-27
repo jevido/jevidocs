@@ -7,7 +7,7 @@ position: 25
 The admin app lives at
 [admin.jevidocs.jevido.app](https://admin.jevidocs.jevido.app) (locally on port
 4740). It is a Svelte 5 single-page app that talks to the [admin
-endpoints](/docs/api#admin) of the API.
+endpoints](/docs/api/admin) of the API.
 
 ## Signing in
 

@@ -214,7 +214,7 @@ func DeleteProject(p models.Project) error {
 	return err
 }
 
-var pageListColumns = []string{"id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "root", "locale", "updated_by", "created_at", "updated_at"}
+var pageListColumns = []string{"id", "project_id", "slug", "title", "description", "icon", "position", "section", "published", "root", "kind", "locale", "updated_by", "created_at", "updated_at"}
 
 // pagesOf lists p's pages in p.Locale. For readers (published) a missing
 // translation falls back to the default-locale page, like fumadocs; for
@@ -269,7 +269,7 @@ func Tree(p models.Project) (docs.Tree, error) {
 	metas := make([]docs.PageMeta, 0, len(pages))
 	for _, pg := range pages {
 		metas = append(metas, docs.PageMeta{Slug: pg.Slug, Title: pg.Title, Icon: pg.Icon, Position: pg.Position,
-			Section: pg.Section, Description: pg.Description, Root: pg.Root})
+			Section: pg.Section, Description: pg.Description, Root: pg.Root, Kind: pg.Kind})
 	}
 	return docs.BuildTree(p.Name, metas), nil
 }

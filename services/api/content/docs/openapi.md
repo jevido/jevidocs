@@ -9,7 +9,7 @@ jevidocs turns an **OpenAPI 3.0 or 3.1** document (JSON or YAML) into an
 API reference page laid out like [Scalar](https://scalar.com): the whole API
 on one page, every operation in two columns with its documentation on the
 left and request and response samples on the right, and a request client to
-try it. See it on this site's own [API reference](/docs/api/reference).
+try it. See it on this site's own [REST API reference](/docs/api).
 
 The reference is still a page. It sits in the sidebar, shows up in search (per
 operation), and agents get it as Markdown in `llms.txt`, from `page.md` and
@@ -107,7 +107,12 @@ In a folder you sync (`jevidocs push`, a GitHub source), a file named
 </Tabs>
 
 An example spec, for jevidocs' own public API, lives in the repository at
-`services/api/content/openapi/jevidocs.json`.
+`services/api/content/docs/api.openapi.json`.
+
+A top-level OpenAPI page (a slug without `/`, like `api`) becomes a
+[root](/docs/writing/page-tree#root-folders) when it is created: the sidebar
+switcher opens the reference directly, and pages below the slug sit next to
+its operations. Turn **Root** off in the admin to keep it a plain page.
 
 ## Re-importing
 

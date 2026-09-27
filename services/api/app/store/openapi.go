@@ -48,6 +48,7 @@ func ImportOpenAPI(p models.Project, spec []byte, prefix string) (SyncResult, er
 	kind, pub := KindOpenAPI, true
 	in := PageInput{Slug: prefix, Body: body, Kind: &kind, Published: &pub, Position: 100}
 	if cur == nil {
+		in.Root = specRoot(prefix)
 		_, err = SavePage(p, in, nil)
 		res.Created++
 		return res, err
@@ -64,4 +65,12 @@ func ImportOpenAPI(p models.Project, spec []byte, prefix string) (SyncResult, er
 	_, err = SavePage(p, in, cur)
 	res.Updated++
 	return res, err
+}
+
+// specRoot is the Root of a newly created OpenAPI page: a top-level
+// reference becomes a sidebar tab of its own. Later saves leave Root alone,
+// so turning it off in the admin sticks.
+func specRoot(slug string) *bool {
+	root := !strings.Contains(slug, "/")
+	return &root
 }

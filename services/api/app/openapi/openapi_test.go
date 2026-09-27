@@ -156,12 +156,12 @@ func TestRejectsSwagger2(t *testing.T) {
 
 // The spec of our own public API stays importable.
 func TestJevidocsSpec(t *testing.T) {
-	res := build(t, "../../content/openapi/jevidocs.json")
+	res := build(t, "../../content/docs/api.openapi.json")
 	n := 0
 	for _, tag := range res.Reference.Tags {
 		n += len(tag.Operations)
 	}
-	if len(res.Reference.Tags) != 3 || n != 7 {
+	if len(res.Reference.Tags) != 4 || n != 8 {
 		t.Errorf("got %d tags, %d operations", len(res.Reference.Tags), n)
 	}
 }

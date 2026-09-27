@@ -1,14 +1,18 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "jevidocs API",
+    "title": "REST API",
     "version": "0.1.0",
-    "description": "Public, read-only endpoints of the jevidocs API: projects, page trees, rendered pages, search and llms.txt."
+    "description": "Public, read-only endpoints of the jevidocs API: projects, page trees, rendered pages, search and llms.txt.\n\nLocally the API runs on `http://127.0.0.1:4730`. Responses are JSON unless noted. Errors look like `{\"error\": \"message\"}` with a `4xx`/`5xx` status: `404` for unknown or private projects and pages, `422` for validation problems, `401` without a valid token. CORS allows every origin. Managing projects, pages and tokens is covered in [Admin endpoints](/docs/api/admin)."
   },
   "servers": [
     {
       "url": "https://api.jevidocs.jevido.app",
       "description": "Production"
+    },
+    {
+      "url": "http://127.0.0.1:4730",
+      "description": "Local development"
     }
   ],
   "tags": [
@@ -23,6 +27,10 @@
     {
       "name": "LLMs",
       "description": "Plain-text views for language models."
+    },
+    {
+      "name": "Service",
+      "description": "Health of the API itself."
     }
   ],
   "paths": {
@@ -316,6 +324,48 @@
           }
         }
       }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "health",
+        "summary": "Health check",
+        "description": "Reports that the API is up and can reach its database. Deploy health checks use it.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "status": "ok",
+                  "database": "ok",
+                  "framework": "v1.18.0"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "status": "degraded",
+                  "database": "unreachable",
+                  "framework": "v1.18.0"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -549,6 +599,34 @@
           "error": {
             "type": "string",
             "example": "not found"
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "required": [
+          "status",
+          "database",
+          "framework"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unreachable"
+            ]
+          },
+          "framework": {
+            "type": "string",
+            "description": "Goravel version."
           }
         }
       }
