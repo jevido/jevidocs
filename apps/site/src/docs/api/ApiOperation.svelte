@@ -213,7 +213,7 @@
   .op {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 3rem;
+    gap: 2rem;
     padding: 3rem 0;
     border-top: 1px solid var(--border);
   }
@@ -355,7 +355,7 @@
   .test:hover { opacity: 0.9; }
   .example { margin-right: auto; }
 
-  @media (max-width: 1100px) {
+  @container ref (max-width: 720px) {
     .op { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding: 2.25rem 0; }
     .sticky { position: static; }
   }

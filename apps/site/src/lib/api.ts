@@ -30,7 +30,7 @@ export type Project = {
 
 export type VersionLink = { slug: string; name: string; label: string; url: string }
 
-export type PageRef = { type: 'page'; name: string; slug: string; icon?: string }
+export type PageRef = { type: 'page'; name: string; slug: string; icon?: string; kind?: 'openapi' }
 export type TreeNode =
   | PageRef
   | { type: 'separator'; name: string }

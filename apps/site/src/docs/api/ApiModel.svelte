@@ -29,7 +29,7 @@
 </details>
 
 <style>
-  .model { border: 1px solid var(--border); border-radius: 0.6rem; max-width: calc(50% - 1.5rem); }
+  .model { border: 1px solid var(--border); border-radius: 0.6rem; max-width: calc(50% - 1rem); }
   summary {
     display: flex;
     align-items: baseline;
@@ -46,7 +46,7 @@
   .type { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted-fg); }
   .body { padding: 0 0.9rem 0.5rem; border-top: 1px solid var(--border-soft); }
   .desc { font-size: 0.85rem; }
-  @media (max-width: 1100px) {
+  @container ref (max-width: 720px) {
     .model { max-width: none; }
   }
 </style>

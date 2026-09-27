@@ -164,7 +164,7 @@ await test('site: root toggle lists REST API', async () => {
 })
 
 await test('site: OpenAPI reference with outline and request client', async () => {
-  await goto(page, SITE + '/docs/api/reference#tag/pages/GET/api/projects/{project}/search')
+  await goto(page, SITE + '/docs/api#tag/pages/GET/api/projects/{project}/search')
   await waitFor(async () => (await page.$$('section.op[data-op]')).length >= 7, 'operations')
   assert((await page.$$('.sidebar .api-nav a.op')).length >= 7, 'sidebar outline is missing operations')
   assert((await page.$$('nav.toc a')).length === 0, 'an API reference has no TOC column')
@@ -173,6 +173,13 @@ await test('site: OpenAPI reference with outline and request client', async () =
   await page.click('section.op button.test')
   await waitFor(async () => (await page.$('dialog.client[open]')) !== null, 'request client')
   await page.keyboard.press('Escape')
+})
+
+await test('site: API root keeps its outline on guide pages', async () => {
+  await goto(page, SITE + '/docs/api/authentication')
+  await waitFor(async () => (await page.$$('.sidebar .api-nav.flat .tag')).length >= 3, 'API outline in the sidebar')
+  const trigger = await page.$eval('.root-toggle .trigger', (e) => e.textContent ?? '')
+  assert(trigger.includes('REST API'), `root toggle = ${trigger}`)
 })
 
 await test('site: mermaid renders on a canvas', async () => {

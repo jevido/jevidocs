@@ -156,11 +156,13 @@
 <ApiClient />
 
 <style>
-  .ref { min-width: 0; }
+  /* Two columns follow the width the page gives the reference, not the
+     viewport: it sits in the same column as every other page. */
+  .ref { min-width: 0; container: ref / inline-size; }
   .intro {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 3rem;
+    gap: 2rem;
     padding-bottom: 3rem;
   }
   .badges { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
@@ -216,11 +218,11 @@
   .clients button:hover { color: var(--fg); }
   .clients button[aria-checked='true'] { color: var(--fg); border-color: var(--fg); }
   .tag { padding-top: 1rem; }
-  .tag-head { padding: 2rem 0 1.5rem; border-top: 1px solid var(--border); max-width: calc(50% - 1.5rem); }
+  .tag-head { padding: 2rem 0 1.5rem; border-top: 1px solid var(--border); max-width: calc(50% - 1rem); }
   .tag-head h2 { margin: 0 0 0.5rem; font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; }
   .tag-head h2 a { text-decoration: none; }
   .model-list { display: flex; flex-direction: column; gap: 0.5rem; padding-bottom: 3rem; }
-  @media (max-width: 1100px) {
+  @container ref (max-width: 720px) {
     .intro { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
     .tag-head { max-width: none; }
   }

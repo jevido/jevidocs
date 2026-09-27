@@ -17,9 +17,11 @@
   import MobileToc from './MobileToc.svelte'
   import { applyAccent, setPageMeta } from '../lib/project-theme'
   import { sidebar } from '../lib/sidebar.svelte'
-  import { containsSlug } from '../lib/tree'
+  import { apiPageOf, containsSlug } from '../lib/tree'
   import type { TreeNode } from '../lib/api'
+  import type { ApiReference as Reference } from '../lib/openapi'
   import ApiReference from './api/ApiReference.svelte'
+  import ApiNav from './api/ApiNav.svelte'
   import { apiNav } from './api/state.svelte'
 
   interceptLinks()
@@ -38,9 +40,15 @@
   const roots = $derived(allNodes.filter((n): n is RootFolder => n.type === 'folder' && !!n.root))
   const outside = $derived(allNodes.filter((n) => !(n.type === 'folder' && n.root)))
   const activeRoot = $derived(roots.find((r) => containsSlug(r, route.slug)) ?? null)
+  // A root with an OpenAPI page shows the reference's outline in place of
+  // that page's entry, after the root's other pages.
+  const apiRoot = $derived((activeRoot && apiPageOf(activeRoot)) ?? null)
   const sidebarNodes = $derived<TreeNode[]>(
     activeRoot
-      ? [...(activeRoot.index ? [{ ...activeRoot.index, name: 'Overview' }] : []), ...activeRoot.children]
+      ? [
+          ...(activeRoot.index && activeRoot.index !== apiRoot ? [{ ...activeRoot.index, name: 'Overview' }] : []),
+          ...activeRoot.children.filter((c) => c !== apiRoot),
+        ]
       : outside,
   )
 
@@ -157,6 +165,36 @@
     apiNav.slug = reference && page ? page.slug : ''
     apiNav.ref = reference ?? null
   })
+
+  // The API root's outline is its sidebar on every page of the root, so a
+  // guide page below it fetches the reference once and keeps it.
+  let rootApi = $state.raw<{ key: string; ref: Reference } | null>(null)
+  const rootApiKey = $derived(apiRoot ? `${route.project}/${route.locale}/${apiRoot.slug}` : '')
+  const rootReference = $derived(
+    apiRoot && reference && page?.slug === apiRoot.slug
+      ? reference
+      : rootApi && rootApi.key === rootApiKey
+        ? rootApi.ref
+        : null,
+  )
+  $effect(() => {
+    const key = rootApiKey
+    const slug = apiRoot?.slug
+    if (!key || slug === undefined) return
+    if (reference && page?.slug === slug) {
+      rootApi = { key, ref: reference }
+      return
+    }
+    if (untrack(() => rootApi?.key) === key) return
+    const ctrl = new AbortController()
+    api
+      .page(route.project, slug, ctrl.signal)
+      .then((p) => {
+        if (p.kind === 'openapi' && p.api) rootApi = { key, ref: p.api }
+      })
+      .catch(() => {})
+    return () => ctrl.abort()
+  })
 </script>
 
 <a class="skip-link" href="#content">Skip to content</a>
@@ -175,7 +213,7 @@
 
 <ReaderExtras previous={page?.previous?.slug} next={page?.next?.slug} onsearch={() => (searchOpen = true)} />
 
-<div class="layout" class:collapsed={sidebar.collapsed} class:api={!!reference}>
+<div class="layout" class:collapsed={sidebar.collapsed}>
   {#if drawerOpen}
     <div class="scrim" role="presentation" onclick={() => (drawerOpen = false)}></div>
   {/if}
@@ -197,6 +235,9 @@
             onnavigate={() => (drawerOpen = false)} />
         {/if}
         <TreeItems nodes={sidebarNodes} onnavigate={() => (drawerOpen = false)} />
+        {#if apiRoot && rootReference}
+          <ApiNav reference={rootReference} slug={apiRoot.slug} flat onnavigate={() => (drawerOpen = false)} />
+        {/if}
       {:else if !projectError}
         {#each Array(8) as _, i (i)}
           <div class="sk sk-item" style:width="{55 + ((i * 37) % 40)}%"></div>
@@ -257,7 +298,7 @@
         {/each}
       </div>
     {:else}
-      <article class:dim={status === 'loading'} class:wide={!!reference}>
+      <article class:dim={status === 'loading'}>
         {#if crumbs.length}
           <nav class="crumbs" aria-label="Breadcrumb">
             {#each crumbs as c, i (i)}
@@ -426,17 +467,7 @@
     padding: 2.5rem 2.5rem 4rem;
   }
   article { max-width: 860px; margin: 0 auto; transition: opacity 0.2s; }
-  article.wide { max-width: 1320px; }
   .api-ref { margin-top: 1.5rem; }
-  /* An API reference needs the width: no TOC column, a wider page. */
-  .layout.api { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); max-width: 1680px; }
-  .layout.api .toc-col { display: none; }
-  @media (min-width: 801px) {
-    .layout.api.collapsed { grid-template-columns: minmax(0, 1fr); }
-  }
-  @media (max-width: 800px) {
-    .layout.api { grid-template-columns: minmax(0, 1fr); }
-  }
   article.dim { opacity: 0.6; }
   .crumbs {
     display: flex;

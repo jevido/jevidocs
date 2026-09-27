@@ -2,7 +2,7 @@
   import type { TreeNode } from '../lib/api'
   import Icon, { normalizeIcon } from '../lib/Icon.svelte'
   import { router } from '../lib/router.svelte'
-  import { flatten } from '../lib/tree'
+  import { apiPageOf, flatten } from '../lib/tree'
 
   type Folder = Extract<TreeNode, { type: 'folder' }>
   type Option = { name: string; description: string; icon?: string; href: string; active: boolean }
@@ -33,8 +33,9 @@
     ...roots.map((r) => ({
       name: r.name,
       description: r.description ?? '',
-      icon: normalizeIcon(r.icon) ?? 'folder',
-      href: router.href(r.index?.slug ?? firstSlug(r.children) ?? ''),
+      icon: normalizeIcon(r.icon) ?? (apiPageOf(r) ? 'code' : 'folder'),
+      // An API root opens on its reference, not on its overview.
+      href: router.href(apiPageOf(r)?.slug ?? r.index?.slug ?? firstSlug(r.children) ?? ''),
       active: active === r,
     })),
   ])

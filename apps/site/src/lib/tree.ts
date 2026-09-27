@@ -17,3 +17,11 @@ export function flatten(nodes: TreeNode[], out: PageRef[] = []): PageRef[] {
   }
   return out
 }
+
+// apiPageOf is the OpenAPI page a root folder is about: its index, or else
+// the first OpenAPI page directly inside it. The root opens on it, and its
+// outline stands in for its entry in the sidebar.
+export function apiPageOf(folder: Extract<TreeNode, { type: 'folder' }>): PageRef | undefined {
+  if (folder.index?.kind === 'openapi') return folder.index
+  return folder.children.find((c): c is PageRef => c.type === 'page' && c.kind === 'openapi')
+}
