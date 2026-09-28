@@ -43,7 +43,7 @@
 
   // The menu is a windowed list: five rows tall, rendering only the rows in
   // view (plus a few either side), so projects with many roots stay cheap.
-  const ROW = 44 // px, matches `.menu a` height
+  const ROW = 54 // px; every row is this tall, so names and descriptions stay on one line
   const VISIBLE = 5
   const OVERSCAN = 2
   let scrollTop = $state(0)
@@ -88,6 +88,7 @@
             role="menuitem"
             href={o.href}
             class:active={o.active}
+            title={o.description ? `${o.name}: ${o.description}` : o.name}
             style:top="{(start + i) * ROW}px"
             onclick={() => {
               open = false
@@ -168,7 +169,13 @@
     left: 0;
     right: 0;
     height: var(--row);
+    padding-block: 0;
     box-sizing: border-box;
+  }
+  .menu .name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .menu a:hover { background: var(--accent); }
   .menu a.active { background: var(--accent); }
