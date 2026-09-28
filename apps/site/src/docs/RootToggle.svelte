@@ -41,6 +41,23 @@
   ])
   const current = $derived(options.find((o) => o.active) ?? options[0])
 
+  // The menu is a windowed list: five rows tall, rendering only the rows in
+  // view (plus a few either side), so projects with many roots stay cheap.
+  const ROW = 44 // px, matches `.menu a` height
+  const VISIBLE = 5
+  const OVERSCAN = 2
+  let scrollTop = $state(0)
+  const start = $derived(Math.max(0, Math.floor(scrollTop / ROW) - OVERSCAN))
+  const end = $derived(Math.min(options.length, Math.ceil(scrollTop / ROW) + VISIBLE + OVERSCAN))
+  const shown = $derived(options.slice(start, end))
+
+  // Opens scrolled to the active root.
+  function reveal(node: HTMLElement) {
+    const i = options.findIndex((o) => o.active)
+    if (i >= VISIBLE) node.scrollTop = (i - Math.floor(VISIBLE / 2)) * ROW
+    scrollTop = node.scrollTop
+  }
+
   function close(e: MouseEvent) {
     if (!(e.target as HTMLElement).closest('.root-toggle')) open = false
   }
@@ -58,24 +75,33 @@
     <Icon name="chevronDown" size={15} />
   </button>
   {#if open}
-    <div class="menu" role="menu">
-      {#each options as o (o.href + o.name)}
-        <a
-          role="menuitem"
-          href={o.href}
-          class:active={o.active}
-          onclick={() => {
-            open = false
-            onnavigate?.()
-          }}>
-          <span class="icon"><Icon name={o.icon ?? 'folder'} size={16} /></span>
-          <span class="text">
-            <span class="name">{o.name}</span>
-            {#if o.description}<span class="desc">{o.description}</span>{/if}
-          </span>
-          {#if o.active}<Icon name="check" size={15} />{/if}
-        </a>
-      {/each}
+    <div
+      class="menu"
+      role="menu"
+      style:--row="{ROW}px"
+      style:max-height="{VISIBLE * ROW}px"
+      onscroll={(e) => (scrollTop = e.currentTarget.scrollTop)}
+      {@attach reveal}>
+      <div class="rows" style:height="{options.length * ROW}px">
+        {#each shown as o, i (o.href + o.name)}
+          <a
+            role="menuitem"
+            href={o.href}
+            class:active={o.active}
+            style:top="{(start + i) * ROW}px"
+            onclick={() => {
+              open = false
+              onnavigate?.()
+            }}>
+            <span class="icon"><Icon name={o.icon ?? 'folder'} size={16} /></span>
+            <span class="text">
+              <span class="name">{o.name}</span>
+              {#if o.description}<span class="desc">{o.description}</span>{/if}
+            </span>
+            {#if o.active}<Icon name="check" size={15} />{/if}
+          </a>
+        {/each}
+      </div>
     </div>
   {/if}
 </div>
@@ -132,6 +158,17 @@
     border-radius: var(--radius);
     background: var(--popover);
     box-shadow: var(--shadow);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: content-box;
+  }
+  .rows { position: relative; }
+  .menu a {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--row);
+    box-sizing: border-box;
   }
   .menu a:hover { background: var(--accent); }
   .menu a.active { background: var(--accent); }
