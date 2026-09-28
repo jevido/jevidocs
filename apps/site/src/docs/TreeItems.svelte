@@ -20,7 +20,8 @@
   {:else if node.type === 'page'}
     {@const icon = normalizeIcon(node.icon)}
     {@const current = router.route.slug === node.slug}
-    {#if node.kind === 'openapi'}
+    <!-- The open page's outline decides too, in case the tree lacks `kind`. -->
+    {#if node.kind === 'openapi' || apiNav.slug === node.slug}
       {@const open = current && !folded[node.slug]}
       <div class="row" class:current>
         <a
